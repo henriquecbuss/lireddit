@@ -1,0 +1,20 @@
+# Yarn
+.yarn/*
+!.yarn/cache
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+
+.cache
+
+# Elm
+elm-stuff
+repl-temp-*
+
+
+# Node
+node_modules
+
+# Build
+dist
