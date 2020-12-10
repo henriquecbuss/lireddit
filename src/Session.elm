@@ -1,6 +1,7 @@
 module Session exposing (..)
 
 import Browser.Navigation as Nav
+import User exposing (User)
 
 
 
@@ -8,7 +9,7 @@ import Browser.Navigation as Nav
 
 
 type Session
-    = LoggedIn Nav.Key
+    = LoggedIn Nav.Key User
     | Guest Nav.Key
 
 
@@ -19,7 +20,7 @@ type Session
 navKey : Session -> Nav.Key
 navKey session =
     case session of
-        LoggedIn key ->
+        LoggedIn key _ ->
             key
 
         Guest key ->

@@ -28,10 +28,6 @@ init _ url key =
 
 
 
--- (Home.init (Session.Guest key)
---     |> Tuple.first
---     |> Home
--- )
 -- MESSAGE
 
 
@@ -93,9 +89,8 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model ) of
         ( ChangedUrl url, _ ) ->
-            changeRouteTo (Route.fromUrl url) model
+            changeRouteTo (Route.fromUrl (url |> Debug.log "url") |> Debug.log "fromUrl") model
 
-        -- TODO
         ( RequestedUrl request, _ ) ->
             case request of
                 Browser.Internal url ->
@@ -135,8 +130,9 @@ changeRouteTo maybeRoute model =
     let
         session =
             toSession model
+                |> Debug.log "session"
     in
-    case maybeRoute of
+    case Debug.log "maybeRoute" maybeRoute of
         Nothing ->
             ( NotFound session, Cmd.none )
 

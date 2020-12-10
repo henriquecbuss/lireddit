@@ -4,11 +4,13 @@
     "parcel-bundler": "^1.12.4"
   },
   "devDependencies": {
+    "@dillonkearns/elm-graphql": "^4.0.5",
     "elm-hot": "^1.1.5",
     "node-elm-compiler": "^5.0.5"
   },
   "scripts": {
     "build": "parcel build ./index.html",
-    "start": "parcel ./index.html"
+    "start": "parcel ./index.html",
+    "api": "elm-graphql http://localhost:4000/graphql"
   }
 }
