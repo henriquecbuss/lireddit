@@ -2,6 +2,7 @@ module Page.Login exposing (Model(..), Msg(..), init, toSession, update, view)
 
 import Api.Mutation as Mutation
 import Browser
+import Components.UserForm exposing (Variant(..), userForm)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -90,43 +91,28 @@ view model =
 
                     LoggedIn _ ->
                         []
+
+            loading =
+                case model of
+                    Login _ ->
+                        False
+
+                    _ ->
+                        True
         in
-        [ layout []
-            (column
-                [ height fill
-                , width <| maximum 800 fill
-                , paddingXY 80 80
-                , spacing 30
-                , centerX
-                ]
-                [ Error.viewInputWithError Input.username
-                    [ Input.focusedOnLoad ]
-                    { onChange = ChangedUsername
-                    , text = username
-                    , placeholder = Just (Input.placeholder [] (text "username"))
-                    , label = Input.labelAbove [] (text "Username")
-                    }
-                    (List.filter Error.isUsernameError errors)
-                , Error.viewInputWithError Input.currentPassword
-                    []
-                    { onChange = ChangedPassword
-                    , text = password
-                    , placeholder = Just (Input.placeholder [] (text "password"))
-                    , label = Input.labelAbove [] (text "Password")
-                    , show = password == ""
-                    }
-                    (List.filter Error.isPasswordError errors)
-                , Input.button
-                    [ Background.color <| rgb255 0 170 128
-                    , Font.color <| rgb 1 1 1
-                    , Border.rounded 4
-                    , paddingXY 30 15
-                    ]
-                    { onPress = Just Submitted
-                    , label = el [ centerX, centerY ] (text "Login")
-                    }
-                ]
-            )
+        [ layout [] <|
+            userForm
+                { onUsernameChange = ChangedUsername
+                , usernameText = username
+                , errors = errors
+                , newPassword = False
+                , onPasswordChange = ChangedPassword
+                , passwordText = password
+                , variant = Green
+                , onSubmit = Submitted
+                , buttonLabel = "Sign In"
+                , loading = loading
+                }
         ]
     }
 

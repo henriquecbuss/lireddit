@@ -1,8 +1,7 @@
-module Route exposing (Route(..), fromUrl, href, replaceUrl)
+module Route exposing (Route(..), fromUrl, linkToRoute, replaceUrl)
 
 import Browser.Navigation as Nav
-import Html exposing (Attribute)
-import Html.Attributes as Attr
+import Element exposing (..)
 import Url exposing (Url)
 import Url.Parser as Parser exposing (Parser, oneOf, s)
 
@@ -32,7 +31,7 @@ parser =
 
 replaceUrl : Nav.Key -> Route -> Cmd msg
 replaceUrl key route =
-    Nav.replaceUrl key (routeToString route)
+    Nav.replaceUrl key (toString route)
 
 
 fromUrl : Url -> Maybe Route
@@ -40,17 +39,20 @@ fromUrl =
     Parser.parse parser
 
 
+linkToRoute :
+    List (Attribute msg)
+    -> { route : Route, label : Element msg }
+    -> Element msg
+linkToRoute attrs { route, label } =
+    link attrs { url = toString route, label = label }
+
+
 
 -- INTERNAL
 
 
-href : Route -> Attribute msg
-href targetRoute =
-    Attr.href (routeToString targetRoute)
-
-
-routeToString : Route -> String
-routeToString page =
+toString : Route -> String
+toString page =
     "/" ++ String.join "/" (routeToPieces page)
 
 

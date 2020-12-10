@@ -6,6 +6,7 @@ import Api.Object.FieldError as FieldError
 import Api.Object.User as User
 import Api.Object.UserResponse as UserResponse
 import Browser
+import Components.UserForm exposing (Variant(..), userForm)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -66,9 +67,6 @@ type Msg
 view : Model -> Browser.Document Msg
 view model =
     let
-        inputFieldWidth =
-            maximum 800 fill
-
         username =
             case model of
                 Registering r ->
@@ -109,22 +107,6 @@ view model =
 
                 _ ->
                     False
-
-        showPassword =
-            case model of
-                Registering r ->
-                    r.password == ""
-
-                _ ->
-                    False
-
-        buttonContent =
-            case model of
-                Loading _ ->
-                    text "Loading"
-
-                _ ->
-                    text "Register"
     in
     { title = "Register"
     , body =
@@ -133,57 +115,19 @@ view model =
                 [ layout [] (text <| "Registered: " ++ user.username) ]
 
             _ ->
-                [ layout []
-                    (column
-                        [ height fill
-                        , width <| maximum 800 fill
-                        , paddingXY 80 80
-                        , spacing 30
-                        , centerX
-                        ]
-                        [ Error.viewInputWithError Input.username
-                            [ Input.focusedOnLoad ]
-                            { onChange = ChangedUsername
-                            , text = username
-                            , placeholder = Just (Input.placeholder [] (text "username"))
-                            , label = Input.labelAbove [] (text "Username")
-                            }
-                            (List.filter Error.isUsernameError errs)
-                        , Error.viewInputWithError Input.newPassword
-                            []
-                            { onChange = ChangedPassword
-                            , text = password
-                            , placeholder = Just (Input.placeholder [] (text "password"))
-                            , label = Input.labelAbove [] (text "Password")
-                            , show = showPassword
-                            }
-                            (List.filter Error.isPasswordError errs)
-                        , Input.button
-                            [ Background.color <|
-                                if disabled then
-                                    rgb255 0 100 100
-
-                                else
-                                    rgb255 0 128 128
-                            , Font.color <|
-                                if disabled then
-                                    rgb 0.9 0.9 0.9
-
-                                else
-                                    rgb 1 1 1
-                            , Border.rounded 4
-                            , paddingXY 30 15
-                            ]
-                            { onPress =
-                                if disabled then
-                                    Nothing
-
-                                else
-                                    Just Submitted
-                            , label = el [ centerX, centerY ] buttonContent
-                            }
-                        ]
-                    )
+                [ layout [] <|
+                    userForm
+                        { onUsernameChange = ChangedUsername
+                        , usernameText = username
+                        , errors = errs
+                        , newPassword = True
+                        , onPasswordChange = ChangedPassword
+                        , passwordText = password
+                        , variant = Teal
+                        , onSubmit = Submitted
+                        , buttonLabel = "Sign Up"
+                        , loading = disabled
+                        }
                 ]
     }
 

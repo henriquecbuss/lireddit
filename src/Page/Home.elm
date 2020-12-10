@@ -5,6 +5,7 @@ import Api.Object
 import Api.Object.Post as Post
 import Api.Query as Query
 import Browser
+import Components.Navbar exposing (navbar)
 import Element exposing (..)
 import GraphQL exposing (query)
 import Graphql.Http
@@ -51,8 +52,8 @@ view model =
     { title = "Home"
     , body =
         [ layout []
-            (column [ spacing 40 ]
-                [ text "Home"
+            (column [ spacing 40, width fill ]
+                [ navbar
                 , Maybe.map viewPost model.post
                     |> Maybe.withDefault (text "Single post")
                 , column [] <| List.map viewPost model.posts
