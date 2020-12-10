@@ -24,7 +24,6 @@ import User exposing (User)
 
 
 
--- TODO - Redirect to home if already registered
 -- MODEL
 
 
