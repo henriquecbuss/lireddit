@@ -1,4 +1,4 @@
-module Page.Login exposing (Model(..), Msg(..), init, toSession, update, view)
+module Page.Login exposing (Model(..), Msg(..), init, toSession, update, updateSession, view)
 
 import Api.Mutation as Mutation
 import Browser
@@ -9,7 +9,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Error exposing (Error, unknown)
-import GraphQL exposing (UserResult(..), mutation, userInfoSelection)
+import GraphQL exposing (GraphQLResult, UserResult(..), mutation, userResultSelection)
 import Graphql.Http
 import Html exposing (Html)
 import Route
@@ -34,9 +34,21 @@ type Model
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Login { session = session, username = "", password = "", errors = [] }
-    , Cmd.none
-    )
+    case session of
+        Session.LoggedIn key user ->
+            ( LoggedIn { session = session, user = user }
+            , Route.replaceUrl key Route.Home
+            )
+
+        Session.Guest key ->
+            ( Login
+                { session = session
+                , username = ""
+                , password = ""
+                , errors = []
+                }
+            , GraphQL.getSession key GotSession
+            )
 
 
 
@@ -48,6 +60,7 @@ type Msg
     | ChangedPassword String
     | Submitted
     | SentLogin (Result (Graphql.Http.Error UserResult) UserResult)
+    | GotSession (GraphQLResult (Maybe User))
 
 
 
@@ -166,20 +179,32 @@ update model msg =
                 Err _ ->
                     ( model, Cmd.none )
 
+        ( GotSession result, _ ) ->
+            case result of
+                Ok maybeUser ->
+                    case maybeUser of
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                        Just user ->
+                            ( updateSession model maybeUser
+                            , Route.replaceUrl (Session.navKey (toSession model)) Route.Home
+                            )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
         -- Invalid states
-        ( ChangedUsername _, Loading _ ) ->
+        ( ChangedUsername _, _ ) ->
             ( model, Cmd.none )
 
-        ( ChangedPassword _, Loading _ ) ->
+        ( ChangedPassword _, _ ) ->
             ( model, Cmd.none )
 
-        ( Submitted, Loading _ ) ->
+        ( Submitted, _ ) ->
             ( model, Cmd.none )
 
-        ( SentLogin _, Login _ ) ->
-            ( model, Cmd.none )
-
-        ( _, LoggedIn _ ) ->
+        ( SentLogin _, _ ) ->
             ( model, Cmd.none )
 
 
@@ -200,10 +225,45 @@ toSession m =
             session
 
 
+updateSession : Model -> Maybe User -> Model
+updateSession model maybeUser =
+    let
+        makeLoggedIn session user =
+            LoggedIn
+                { session = Session.updateSession session (Just user)
+                , user = user
+                }
+    in
+    case ( model, maybeUser ) of
+        ( Login l, Just user ) ->
+            makeLoggedIn l.session user
+
+        ( Login l, Nothing ) ->
+            Login
+                { l | session = Session.updateSession l.session maybeUser }
+
+        ( Loading l, Just user ) ->
+            makeLoggedIn l.session user
+
+        ( Loading l, Nothing ) ->
+            Loading { l | session = Session.updateSession l.session maybeUser }
+
+        ( LoggedIn l, Just user ) ->
+            makeLoggedIn l.session user
+
+        ( LoggedIn l, Nothing ) ->
+            Login
+                { session = Session.updateSession l.session maybeUser
+                , username = ""
+                , password = ""
+                , errors = []
+                }
+
+
 
 -- GRAPHQL
 
 
 loginUser : { options : { username : String, password : String } } -> Cmd Msg
 loginUser options =
-    mutation (Mutation.login options userInfoSelection) SentLogin
+    mutation (Mutation.login options userResultSelection) SentLogin

@@ -1,4 +1,4 @@
-module Page.Register exposing (Model(..), Msg(..), init, toSession, update, view)
+module Page.Register exposing (Model(..), Msg(..), init, toSession, update, updateSession, view)
 
 import Api.Mutation as Mutation
 import Api.Object
@@ -13,7 +13,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Error exposing (Error, unknown)
-import GraphQL exposing (UserResult(..), mutation, userInfoSelection)
+import GraphQL exposing (UserResult(..), mutation, userResultSelection)
 import Graphql.Http
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
 import Html exposing (Html)
@@ -211,10 +211,45 @@ toSession m =
             r.session
 
 
+updateSession : Model -> Maybe User -> Model
+updateSession model maybeUser =
+    let
+        makeRegistered session user =
+            Registered
+                { session = Session.updateSession session (Just user)
+                , user = user
+                }
+    in
+    case ( model, maybeUser ) of
+        ( Registering r, Just user ) ->
+            makeRegistered r.session user
+
+        ( Registering r, Nothing ) ->
+            Registering
+                { r | session = Session.updateSession r.session maybeUser }
+
+        ( Loading l, Just user ) ->
+            makeRegistered l.session user
+
+        ( Loading l, Nothing ) ->
+            Loading { l | session = Session.updateSession l.session maybeUser }
+
+        ( Registered r, Just user ) ->
+            makeRegistered r.session user
+
+        ( Registered r, Nothing ) ->
+            Registering
+                { session = Session.updateSession r.session maybeUser
+                , username = ""
+                , password = ""
+                , errors = []
+                }
+
+
 
 -- GRAPHQL
 
 
 registerUser : { options : { username : String, password : String } } -> Cmd Msg
 registerUser options =
-    mutation (Mutation.register options userInfoSelection) SentRegistration
+    mutation (Mutation.register options userResultSelection) SentRegistration

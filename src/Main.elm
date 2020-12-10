@@ -1,7 +1,9 @@
 module Main exposing (..)
 
+import Api.Query as Query
 import Browser
 import Browser.Navigation as Nav
+import GraphQL exposing (GraphQLResult, query, userSelection)
 import Html exposing (..)
 import Page.Home as Home
 import Page.Login as Login
@@ -10,6 +12,7 @@ import Page.Register as Register
 import Route exposing (Route)
 import Session exposing (Session(..))
 import Url
+import User exposing (User)
 
 
 
@@ -39,6 +42,7 @@ type Msg
     | GotLoginMsg Login.Msg
     | ChangedUrl Url.Url
     | RequestedUrl Browser.UrlRequest
+    | GotSession (GraphQLResult (Maybe User))
 
 
 
@@ -120,6 +124,14 @@ update msg model =
             Login.update login loginMsg
                 |> updateWith Login GotLoginMsg model
 
+        ( GotSession result, _ ) ->
+            case result of
+                Ok user ->
+                    ( updateSession model user, Cmd.none )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
         -- Disregard invalid messages
         _ ->
             ( model, Cmd.none )
@@ -135,6 +147,26 @@ updateWith toModel toMsg model ( subModel, subCmd ) =
     ( toModel subModel, Cmd.map toMsg subCmd )
 
 
+updateWithSession :
+    (subModel -> Model)
+    -> (subMsg -> Msg)
+    -> Model
+    -> ( subModel, Cmd subMsg )
+    -> ( Model, Cmd Msg )
+updateWithSession toModel toMsg model ( subModel, subCmd ) =
+    let
+        key =
+            toSession model
+                |> Session.navKey
+    in
+    ( toModel subModel
+    , Cmd.batch
+        [ Cmd.map toMsg subCmd
+        , GraphQL.getSession key GotSession
+        ]
+    )
+
+
 changeRouteTo : Maybe Route -> Model -> ( Model, Cmd Msg )
 changeRouteTo maybeRoute model =
     let
@@ -147,15 +179,15 @@ changeRouteTo maybeRoute model =
 
         Just Route.Home ->
             Home.init session
-                |> updateWith Home GotHomeMsg model
+                |> updateWithSession Home GotHomeMsg model
 
         Just Route.Login ->
             Login.init session
-                |> updateWith Login GotLoginMsg model
+                |> updateWithSession Login GotLoginMsg model
 
         Just Route.Register ->
             Register.init session
-                |> updateWith Register GotRegisterMsg model
+                |> updateWithSession Register GotRegisterMsg model
 
 
 toSession : Model -> Session
@@ -175,6 +207,30 @@ toSession page =
 
         Login login ->
             Login.toSession login
+
+
+updateSession : Model -> Maybe User -> Model
+updateSession page maybeUser =
+    case page of
+        Redirect session ->
+            Session.updateSession session maybeUser
+                |> Redirect
+
+        NotFound session ->
+            Session.updateSession session maybeUser
+                |> NotFound
+
+        Home home ->
+            Home.updateSession home maybeUser
+                |> Home
+
+        Register register ->
+            Register.updateSession register maybeUser
+                |> Register
+
+        Login login ->
+            Login.updateSession login maybeUser
+                |> Login
 
 
 

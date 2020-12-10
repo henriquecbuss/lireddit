@@ -14,6 +14,7 @@ import Graphql.SelectionSet as SelectionSet exposing (SelectionSet, with)
 import Html exposing (Html)
 import Route
 import Session exposing (Session)
+import User exposing (User)
 
 
 
@@ -53,7 +54,7 @@ view model =
     , body =
         [ layout []
             (column [ spacing 40, width fill ]
-                [ navbar
+                [ navbar (toSession model)
                 , Maybe.map viewPost model.post
                     |> Maybe.withDefault (text "Single post")
                 , column [] <| List.map viewPost model.posts
@@ -95,6 +96,11 @@ update model msg =
 toSession : Model -> Session
 toSession =
     .session
+
+
+updateSession : Model -> Maybe User -> Model
+updateSession model maybeUser =
+    { model | session = Session.updateSession model.session maybeUser }
 
 
 

@@ -1,9 +1,19 @@
-module GraphQL exposing (UserResult(..), mutation, query, userInfoSelection)
+module GraphQL exposing
+    ( GraphQLResult
+    , UserResult(..)
+    , getSession
+    , mutation
+    , query
+    , userResultSelection
+    , userSelection
+    )
 
 import Api.Object exposing (UserResponse)
 import Api.Object.FieldError as FieldError
 import Api.Object.User as User
 import Api.Object.UserResponse as UserResponse
+import Api.Query as Query
+import Browser.Navigation as Nav
 import Graphql.Http exposing (Request)
 import Graphql.Operation exposing (RootMutation, RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
@@ -20,6 +30,14 @@ endpoint =
 
 
 
+-- TYPES
+
+
+type alias GraphQLResult decodesTo =
+    Result (Graphql.Http.Error decodesTo) decodesTo
+
+
+
 -- MUTATION
 
 
@@ -30,6 +48,7 @@ mutation :
 mutation selectionSet toMsg =
     selectionSet
         |> Graphql.Http.mutationRequest endpoint
+        |> Graphql.Http.withCredentials
         |> Graphql.Http.send toMsg
 
 
@@ -44,7 +63,13 @@ query :
 query selectionSet toMsg =
     selectionSet
         |> Graphql.Http.queryRequest endpoint
+        |> Graphql.Http.withCredentials
         |> Graphql.Http.send toMsg
+
+
+getSession : Nav.Key -> (GraphQLResult (Maybe User) -> msg) -> Cmd msg
+getSession key toMsg =
+    query (Query.me userSelection) toMsg
 
 
 
@@ -64,21 +89,21 @@ type UserResult
     | WithUser User
 
 
-errorsInfoSelection : SelectionSet UserError Api.Object.FieldError
-errorsInfoSelection =
+errorsSelection : SelectionSet UserError Api.Object.FieldError
+errorsSelection =
     SelectionSet.map2 UserError FieldError.field FieldError.message
 
 
-singleUserInfoSelection : SelectionSet User Api.Object.User
-singleUserInfoSelection =
+userSelection : SelectionSet User Api.Object.User
+userSelection =
     SelectionSet.map User User.username
 
 
-userInfoSelection : SelectionSet UserResult Api.Object.UserResponse
-userInfoSelection =
+userResultSelection : SelectionSet UserResult Api.Object.UserResponse
+userResultSelection =
     SelectionSet.map2 UserResultIntermediary
-        (UserResponse.errors errorsInfoSelection)
-        (UserResponse.user singleUserInfoSelection)
+        (UserResponse.errors errorsSelection)
+        (UserResponse.user userSelection)
         |> SelectionSet.map
             (\{ errors, user } ->
                 case ( errors, user ) of
