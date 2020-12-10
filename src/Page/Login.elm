@@ -2,7 +2,8 @@ module Page.Login exposing (Model(..), Msg(..), init, toSession, update, updateS
 
 import Api.Mutation as Mutation
 import Browser
-import Components.UserForm exposing (Variant(..), userForm)
+import Components.Button exposing (Variant(..))
+import Components.UserForm exposing (userForm)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -188,7 +189,9 @@ update model msg =
 
                         Just user ->
                             ( updateSession model maybeUser
-                            , Route.replaceUrl (Session.navKey (toSession model)) Route.Home
+                            , Route.replaceUrl
+                                (Session.navKey (toSession model))
+                                Route.Home
                             )
 
                 Err _ ->

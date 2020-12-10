@@ -89,3 +89,8 @@ login :
     -> SelectionSet decodesTo RootMutation
 login requiredArgs object_ =
     Object.selectionForCompositeField "login" [ Argument.required "options" requiredArgs.options Api.InputObject.encodeUsernamePasswordInput ] object_ identity
+
+
+logout : SelectionSet Bool RootMutation
+logout =
+    Object.selectionForField "Bool" "logout" [] Decode.bool

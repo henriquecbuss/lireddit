@@ -7,7 +7,7 @@ import Api.Query as Query
 import Browser
 import Components.Navbar exposing (navbar)
 import Element exposing (..)
-import GraphQL exposing (query)
+import GraphQL exposing (GraphQLResult, query)
 import Graphql.Http
 import Graphql.Operation exposing (RootMutation, RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet, with)
@@ -25,12 +25,13 @@ type alias Model =
     { session : Session
     , post : Maybe Post
     , posts : List Post
+    , isLoggingOut : Bool
     }
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( { session = session, post = Nothing, posts = [] }
+    ( { session = session, post = Nothing, posts = [], isLoggingOut = False }
     , query postsQuery GotPosts
     )
 
@@ -40,8 +41,10 @@ init session =
 
 
 type Msg
-    = GotPost (Result (Graphql.Http.Error (Maybe Post)) (Maybe Post))
-    | GotPosts (Result (Graphql.Http.Error (List Post)) (List Post))
+    = GotPost (GraphQLResult (Maybe Post))
+    | GotPosts (GraphQLResult (List Post))
+    | RequestedLogOut
+    | LoggedOut (GraphQLResult Bool)
 
 
 
@@ -55,6 +58,8 @@ view model =
         [ layout []
             (column [ spacing 40, width fill ]
                 [ navbar (toSession model)
+                    RequestedLogOut
+                    { isLoggingOut = model.isLoggingOut }
                 , Maybe.map viewPost model.post
                     |> Maybe.withDefault (text "Single post")
                 , column [] <| List.map viewPost model.posts
@@ -87,6 +92,17 @@ update model msg =
 
         GotPost _ ->
             ( model, Cmd.none )
+
+        RequestedLogOut ->
+            ( model, GraphQL.mutation Mutation.logout LoggedOut )
+
+        LoggedOut result ->
+            case result of
+                Ok True ->
+                    ( updateSession model Nothing, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
 
 
 

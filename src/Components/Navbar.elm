@@ -1,16 +1,17 @@
 module Components.Navbar exposing (..)
 
+import Components.Button as Button
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
-import Element.Input exposing (focusedOnLoad)
+import Element.Input as Input
 import Element.Region as Region
 import Route exposing (linkToRoute)
 import Session exposing (Session(..))
 
 
-navbar : Session -> Element msg
-navbar session =
+navbar : Session -> msg -> { isLoggingOut : Bool } -> Element msg
+navbar session loggedOut { isLoggingOut } =
     let
         linkStyles =
             [ mouseOver [ Font.color <| rgb255 242 148 48 ] ]
@@ -18,7 +19,16 @@ navbar session =
     (case session of
         LoggedIn _ user ->
             [ el [ alignRight ] <| text user.username
-            , el [] (text "Log Out")
+            , Button.button
+                { onClick = loggedOut
+                , variant = Button.Transparent
+                , state =
+                    if isLoggingOut then
+                        Button.Loading
+
+                    else
+                        Button.Enabled "Log Out"
+                }
             ]
 
         Guest _ ->

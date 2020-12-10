@@ -1,17 +1,12 @@
-module Components.UserForm exposing (Variant(..), userForm)
+module Components.UserForm exposing (userForm)
 
+import Components.Button as Button
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Error exposing (isPasswordError)
-import Html exposing (th)
-
-
-type Variant
-    = Teal
-    | Green
 
 
 userForm :
@@ -21,7 +16,7 @@ userForm :
     , newPassword : Bool
     , onPasswordChange : String -> msg
     , passwordText : String
-    , variant : Variant
+    , variant : Button.Variant
     , onSubmit : msg
     , buttonLabel : String
     , loading : Bool
@@ -35,36 +30,6 @@ userForm options =
 
             else
                 Input.currentPassword
-
-        buttonText =
-            if options.loading then
-                "Loading"
-
-            else
-                options.buttonLabel
-
-        buttonBg =
-            case options.variant of
-                Teal ->
-                    if options.loading then
-                        rgb255 0 100 100
-
-                    else
-                        rgb255 0 128 128
-
-                Green ->
-                    if options.loading then
-                        rgb255 0 112 84
-
-                    else
-                        rgb255 0 170 128
-
-        buttonFg =
-            if options.loading then
-                rgb 0.9 0.9 0.9
-
-            else
-                rgb 1 1 1
     in
     column
         [ height fill
@@ -90,18 +55,14 @@ userForm options =
             , show = options.passwordText == ""
             }
             (List.filter isPasswordError options.errors)
-        , Input.button
-            [ Background.color buttonBg
-            , Font.color buttonFg
-            , Border.rounded 4
-            , paddingXY 30 15
-            ]
-            { onPress =
+        , Button.button
+            { onClick = options.onSubmit
+            , variant = options.variant
+            , state =
                 if options.loading then
-                    Nothing
+                    Button.Loading
 
                 else
-                    Just options.onSubmit
-            , label = el [ centerX, centerY ] (text buttonText)
+                    Button.Enabled options.buttonLabel
             }
         ]

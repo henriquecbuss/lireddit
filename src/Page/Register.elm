@@ -6,14 +6,15 @@ import Api.Object.FieldError as FieldError
 import Api.Object.User as User
 import Api.Object.UserResponse as UserResponse
 import Browser
-import Components.UserForm exposing (Variant(..), userForm)
+import Components.Button exposing (Variant(..))
+import Components.UserForm exposing (userForm)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Error exposing (Error, unknown)
-import GraphQL exposing (UserResult(..), mutation, userResultSelection)
+import GraphQL exposing (GraphQLResult, UserResult(..), mutation, userResultSelection)
 import Graphql.Http
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
 import Html exposing (Html)
@@ -23,6 +24,7 @@ import User exposing (User)
 
 
 
+-- TODO - Redirect to home if already registered
 -- MODEL
 
 
@@ -39,14 +41,21 @@ type Model
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Registering
-        { session = session
-        , username = ""
-        , password = ""
-        , errors = []
-        }
-    , Cmd.none
-    )
+    case session of
+        Session.LoggedIn key user ->
+            ( Registered { session = session, user = user }
+            , Route.replaceUrl key Route.Home
+            )
+
+        Session.Guest key ->
+            ( Registering
+                { session = session
+                , username = ""
+                , password = ""
+                , errors = []
+                }
+            , GraphQL.getSession key GotSession
+            )
 
 
 
@@ -58,6 +67,7 @@ type Msg
     | ChangedPassword String
     | Submitted
     | SentRegistration (Result (Graphql.Http.Error UserResult) UserResult)
+    | GotSession (GraphQLResult (Maybe User))
 
 
 
@@ -185,6 +195,23 @@ update model msg =
                         }
                     , Cmd.none
                     )
+
+                Err _ ->
+                    ( model, Cmd.none )
+
+        ( GotSession result, _ ) ->
+            case result of
+                Ok maybeUser ->
+                    case maybeUser of
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                        Just user ->
+                            ( updateSession model maybeUser
+                            , Route.replaceUrl
+                                (Session.navKey (toSession model))
+                                Route.Home
+                            )
 
                 Err _ ->
                     ( model, Cmd.none )
