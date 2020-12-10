@@ -96,7 +96,7 @@ errorsSelection =
 
 userSelection : SelectionSet User Api.Object.User
 userSelection =
-    SelectionSet.map User User.username
+    SelectionSet.map2 User User.id User.username
 
 
 userResultSelection : SelectionSet UserResult Api.Object.UserResponse

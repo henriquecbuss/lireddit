@@ -4,4 +4,4 @@ module User exposing (..)
 
 
 type alias User =
-    { username : String }
+    { id : Float, username : String }
