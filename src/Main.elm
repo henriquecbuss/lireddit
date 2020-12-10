@@ -4,6 +4,7 @@ import Browser
 import Browser.Navigation as Nav
 import Html exposing (..)
 import Page.Home as Home
+import Page.Login as Login
 import Page.NotFound as NotFound
 import Page.Register as Register
 import Route exposing (Route)
@@ -18,6 +19,7 @@ import Url
 type Model
     = Register Register.Model
     | Home Home.Model
+    | Login Login.Model
     | NotFound Session
     | Redirect Session
 
@@ -34,6 +36,7 @@ init _ url key =
 type Msg
     = GotRegisterMsg Register.Msg
     | GotHomeMsg Home.Msg
+    | GotLoginMsg Login.Msg
     | ChangedUrl Url.Url
     | RequestedUrl Browser.UrlRequest
 
@@ -77,6 +80,9 @@ view model =
         Home home ->
             viewPage (Home.view home) GotHomeMsg
 
+        Login login ->
+            viewPage (Login.view login) GotLoginMsg
+
         NotFound _ ->
             NotFound.view
 
@@ -89,7 +95,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model ) of
         ( ChangedUrl url, _ ) ->
-            changeRouteTo (Route.fromUrl (url |> Debug.log "url") |> Debug.log "fromUrl") model
+            changeRouteTo (Route.fromUrl url) model
 
         ( RequestedUrl request, _ ) ->
             case request of
@@ -109,6 +115,10 @@ update msg model =
         ( GotHomeMsg homeMsg, Home home ) ->
             Home.update home homeMsg
                 |> updateWith Home GotHomeMsg model
+
+        ( GotLoginMsg loginMsg, Login login ) ->
+            Login.update login loginMsg
+                |> updateWith Login GotLoginMsg model
 
         -- Disregard invalid messages
         _ ->
@@ -130,15 +140,18 @@ changeRouteTo maybeRoute model =
     let
         session =
             toSession model
-                |> Debug.log "session"
     in
-    case Debug.log "maybeRoute" maybeRoute of
+    case maybeRoute of
         Nothing ->
             ( NotFound session, Cmd.none )
 
         Just Route.Home ->
             Home.init session
                 |> updateWith Home GotHomeMsg model
+
+        Just Route.Login ->
+            Login.init session
+                |> updateWith Login GotLoginMsg model
 
         Just Route.Register ->
             Register.init session
@@ -159,6 +172,9 @@ toSession page =
 
         Register register ->
             Register.toSession register
+
+        Login login ->
+            Login.toSession login
 
 
 

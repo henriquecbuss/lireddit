@@ -11,7 +11,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import GraphQL exposing (mutation)
+import Error exposing (Error, unknown)
+import GraphQL exposing (UserResult(..), mutation, userInfoSelection)
 import Graphql.Http
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
 import Html exposing (Html)
@@ -35,45 +36,6 @@ type Model
     | Registered { session : Session, user : User }
 
 
-type Error
-    = UsernameError String
-    | PasswordError String
-    | UnknownError String
-
-
-isUsernameError : Error -> Bool
-isUsernameError err =
-    case err of
-        UsernameError _ ->
-            True
-
-        _ ->
-            False
-
-
-isPasswordError : Error -> Bool
-isPasswordError err =
-    case err of
-        PasswordError _ ->
-            True
-
-        _ ->
-            False
-
-
-errorToMessage : Error -> String
-errorToMessage err =
-    case err of
-        UsernameError msg ->
-            msg
-
-        PasswordError msg ->
-            msg
-
-        UnknownError msg ->
-            msg
-
-
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( Registering
@@ -94,7 +56,7 @@ type Msg
     = ChangedUsername String
     | ChangedPassword String
     | Submitted
-    | SentRegistration (Result (Graphql.Http.Error RegisterResult) RegisterResult)
+    | SentRegistration (Result (Graphql.Http.Error UserResult) UserResult)
 
 
 
@@ -179,15 +141,15 @@ view model =
                         , spacing 30
                         , centerX
                         ]
-                        [ viewInput Input.username
+                        [ Error.viewInputWithError Input.username
                             [ Input.focusedOnLoad ]
                             { onChange = ChangedUsername
                             , text = username
                             , placeholder = Just (Input.placeholder [] (text "username"))
                             , label = Input.labelAbove [] (text "Username")
                             }
-                            (List.filter isUsernameError errs)
-                        , viewInput Input.newPassword
+                            (List.filter Error.isUsernameError errs)
+                        , Error.viewInputWithError Input.newPassword
                             []
                             { onChange = ChangedPassword
                             , text = password
@@ -195,7 +157,7 @@ view model =
                             , label = Input.labelAbove [] (text "Password")
                             , show = showPassword
                             }
-                            (List.filter isPasswordError errs)
+                            (List.filter Error.isPasswordError errs)
                         , Input.button
                             [ Background.color <|
                                 if disabled then
@@ -224,42 +186,6 @@ view model =
                     )
                 ]
     }
-
-
-viewInput :
-    (List (Attribute msg) -> options -> Element msg)
-    -> List (Attribute msg)
-    -> options
-    -> List Error
-    -> Element msg
-viewInput inputFunction attributes options errors =
-    let
-        errorBorder =
-            [ Border.color <| rgba 1 0 0 0.4
-            , Border.glow (rgba 1 0 0 0.2) 1.5
-            ]
-    in
-    column [ width fill, spacing 15 ]
-        [ inputFunction
-            ((if not (List.isEmpty errors) then
-                errorBorder
-
-              else
-                []
-             )
-                ++ attributes
-            )
-            options
-        , List.map viewError errors
-            |> column []
-        ]
-
-
-viewError : Error -> Element msg
-viewError =
-    el [ Font.color <| rgb 1 0 0 ]
-        << text
-        << errorToMessage
 
 
 
@@ -307,18 +233,11 @@ update model msg =
                         , username = l.username
                         , password = l.password
                         , errors =
-                            Maybe.map
-                                (List.map
-                                    (\error ->
-                                        if error.field == "username" then
-                                            UsernameError error.message
+                            if List.isEmpty errors then
+                                [ unknown ]
 
-                                        else
-                                            PasswordError error.message
-                                    )
-                                )
-                                errors
-                                |> Maybe.withDefault [ UnknownError "Unkown error" ]
+                            else
+                                List.map Error.fromRecord errors
                         }
                     , Cmd.none
                     )
@@ -352,57 +271,6 @@ toSession m =
 -- GRAPHQL
 
 
-type alias RegisterError =
-    { field : String
-    , message : String
-    }
-
-
-type alias RegisterResultIntermediary =
-    { errors : Maybe (List RegisterError)
-    , user : Maybe User
-    }
-
-
-type RegisterResult
-    = WithError (Maybe (List RegisterError))
-    | WithUser User
-
-
-registerErrorToString : RegisterError -> String
-registerErrorToString { field, message } =
-    field ++ ": " ++ message
-
-
-registerInfoSelection : SelectionSet RegisterResult Api.Object.UserResponse
-registerInfoSelection =
-    SelectionSet.map2 RegisterResultIntermediary
-        (UserResponse.errors errorsInfoSelection)
-        (UserResponse.user userInfoSelection)
-        |> SelectionSet.map
-            (\{ errors, user } ->
-                case ( errors, user ) of
-                    ( Nothing, Nothing ) ->
-                        WithError Nothing
-
-                    ( Just errs, _ ) ->
-                        WithError (Just errs)
-
-                    ( Nothing, Just u ) ->
-                        WithUser u
-            )
-
-
-errorsInfoSelection : SelectionSet RegisterError Api.Object.FieldError
-errorsInfoSelection =
-    SelectionSet.map2 RegisterError FieldError.field FieldError.message
-
-
-userInfoSelection : SelectionSet User Api.Object.User
-userInfoSelection =
-    SelectionSet.map User User.username
-
-
 registerUser : { options : { username : String, password : String } } -> Cmd Msg
 registerUser options =
-    mutation (Mutation.register options registerInfoSelection) SentRegistration
+    mutation (Mutation.register options userInfoSelection) SentRegistration

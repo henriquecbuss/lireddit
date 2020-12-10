@@ -1,8 +1,13 @@
-module GraphQL exposing (mutation, query)
+module GraphQL exposing (UserResult(..), mutation, query, userInfoSelection)
 
+import Api.Object exposing (UserResponse)
+import Api.Object.FieldError as FieldError
+import Api.Object.User as User
+import Api.Object.UserResponse as UserResponse
 import Graphql.Http exposing (Request)
 import Graphql.Operation exposing (RootMutation, RootQuery)
-import Graphql.SelectionSet exposing (SelectionSet)
+import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
+import User exposing (User)
 
 
 
@@ -40,3 +45,49 @@ query selectionSet toMsg =
     selectionSet
         |> Graphql.Http.queryRequest endpoint
         |> Graphql.Http.send toMsg
+
+
+
+-- SELECTION SETS
+
+
+type alias UserError =
+    { field : String, message : String }
+
+
+type alias UserResultIntermediary =
+    { errors : Maybe (List UserError), user : Maybe User }
+
+
+type UserResult
+    = WithError (List UserError)
+    | WithUser User
+
+
+errorsInfoSelection : SelectionSet UserError Api.Object.FieldError
+errorsInfoSelection =
+    SelectionSet.map2 UserError FieldError.field FieldError.message
+
+
+singleUserInfoSelection : SelectionSet User Api.Object.User
+singleUserInfoSelection =
+    SelectionSet.map User User.username
+
+
+userInfoSelection : SelectionSet UserResult Api.Object.UserResponse
+userInfoSelection =
+    SelectionSet.map2 UserResultIntermediary
+        (UserResponse.errors errorsInfoSelection)
+        (UserResponse.user singleUserInfoSelection)
+        |> SelectionSet.map
+            (\{ errors, user } ->
+                case ( errors, user ) of
+                    ( Nothing, Nothing ) ->
+                        WithError []
+
+                    ( Just errs, _ ) ->
+                        WithError errs
+
+                    ( Nothing, Just u ) ->
+                        WithUser u
+            )
