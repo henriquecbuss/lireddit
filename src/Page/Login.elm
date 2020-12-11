@@ -3,7 +3,9 @@ module Page.Login exposing (Model(..), Msg(..), init, toSession, update, updateS
 import Api.Mutation as Mutation
 import Browser
 import Components.Button as Button
+import Components.LinkButton exposing (linkButton)
 import Components.UserForm exposing (userForm)
+import Components.Variant as Variant
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -12,6 +14,7 @@ import Element.Input as Input
 import Error exposing (Error, unknown)
 import GraphQL exposing (GraphQLResult, UserResult(..), mutation, userResultSelection)
 import Graphql.Http
+import Graphql.SelectionSet as SelectionSet
 import Html exposing (Html)
 import Route
 import Session exposing (Session)
@@ -60,7 +63,7 @@ type Msg
     = ChangedUsername String
     | ChangedPassword String
     | Submitted
-    | SentLogin (Result (Graphql.Http.Error UserResult) UserResult)
+    | SentLogin (GraphQLResult UserResult)
     | GotSession (GraphQLResult (Maybe User))
 
 
@@ -116,12 +119,13 @@ view model =
         in
         [ layout [] <|
             userForm
+                Submitted
                 [ Error.viewInputWithError Input.username
                     [ Input.focusedOnLoad ]
                     { onChange = ChangedUsername
                     , text = usernameOrEmail
                     , placeholder = Just (Input.placeholder [] (text "username or email"))
-                    , label = Input.labelAbove [] (text "Username or email")
+                    , label = Input.labelAbove [] (text "Username or Email")
                     }
                     (List.filter
                         (\e -> Error.isUsernameError e || Error.isEmailError e)
@@ -136,16 +140,34 @@ view model =
                     , show = password == ""
                     }
                     (List.filter Error.isPasswordError errors)
-                , Button.button
-                    { onClick = Submitted
-                    , variant = Button.Green
-                    , state =
-                        if loading then
-                            Button.Loading
+                , row [ width fill, spaceEvenly ]
+                    [ linkButton
+                        { route = Route.Home
+                        , variant = Variant.Gray
+                        , label = text "Go to Home"
+                        }
+                    , linkButton
+                        { route = Route.ForgotPassword
+                        , variant = Variant.Teal
+                        , label = text "Forgot Password"
+                        }
 
-                        else
-                            Button.Enabled "Log In"
-                    }
+                    -- , Button.button
+                    --     { onClick = ForgotPassword
+                    --     , variant = Variant.Teal
+                    --     , state = Button.Enabled "Forgot Password"
+                    --     }
+                    , Button.button
+                        { onClick = Submitted
+                        , variant = Variant.Green
+                        , state =
+                            if loading then
+                                Button.Loading
+
+                            else
+                                Button.Enabled "Log In"
+                        }
+                    ]
                 ]
         ]
     }

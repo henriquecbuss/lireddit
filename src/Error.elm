@@ -3,9 +3,11 @@ module Error exposing
     , fromRecord
     , isEmailError
     , isPasswordError
+    , isTokenError
     , isUsernameError
     , toMessage
     , unknown
+    , viewError
     , viewInputWithError
     )
 
@@ -18,6 +20,7 @@ type Error
     = UsernameError String
     | PasswordError String
     | EmailError String
+    | TokenError String
     | UnknownError String
 
 
@@ -51,6 +54,16 @@ isEmailError err =
             False
 
 
+isTokenError : Error -> Bool
+isTokenError err =
+    case err of
+        TokenError _ ->
+            True
+
+        _ ->
+            False
+
+
 toMessage : Error -> String
 toMessage err =
     case err of
@@ -61,6 +74,9 @@ toMessage err =
             msg
 
         EmailError msg ->
+            msg
+
+        TokenError msg ->
             msg
 
         UnknownError msg ->
@@ -77,6 +93,9 @@ fromRecord { field, message } =
 
     else if field == "email" then
         EmailError message
+
+    else if field == "token" then
+        TokenError message
 
     else
         UnknownError message

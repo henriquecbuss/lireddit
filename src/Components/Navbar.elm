@@ -1,6 +1,7 @@
 module Components.Navbar exposing (..)
 
 import Components.Button as Button
+import Components.Variant as Variant
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
@@ -21,7 +22,7 @@ navbar session loggedOut { isLoggingOut } =
             [ el [ alignRight ] <| text user.username
             , Button.button
                 { onClick = loggedOut
-                , variant = Button.Transparent
+                , variant = Variant.Transparent
                 , state =
                     if isLoggingOut then
                         Button.Loading

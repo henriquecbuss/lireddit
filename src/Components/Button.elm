@@ -1,5 +1,6 @@
-module Components.Button exposing (State(..), Variant(..), button)
+module Components.Button exposing (State(..), button)
 
+import Components.Variant as Variant exposing (..)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -9,12 +10,6 @@ import Element.Input as Input
 
 
 -- TYPES
-
-
-type Variant
-    = Transparent
-    | Green
-    | Teal
 
 
 type State
@@ -30,53 +25,20 @@ buttonFg : Variant -> State -> Color
 buttonFg variant state =
     case state of
         Loading ->
-            rgb 0.9 0.9 0.9
+            setAlpha 0.9 <| fg variant
 
         Enabled _ ->
-            rgb 1 1 1
+            fg variant
 
 
 buttonBg : Variant -> State -> Color
 buttonBg variant state =
-    case variant of
-        Transparent ->
-            rgba 0 0 0 0
+    case state of
+        Loading ->
+            setAlpha 0.75 <| bg variant
 
-        Green ->
-            case state of
-                Loading ->
-                    rgb255 0 112 84
-
-                Enabled _ ->
-                    rgb255 0 170 128
-
-        Teal ->
-            case state of
-                Loading ->
-                    rgb255 0 100 100
-
-                Enabled _ ->
-                    rgb255 0 128 128
-
-
-buttonBorder : Variant -> State -> Color
-buttonBorder variant state =
-    case variant of
-        Transparent ->
-            rgb 1 1 1
-
-        _ ->
-            rgba 0 0 0 0
-
-
-buttonBorderWidth : Variant -> State -> Int
-buttonBorderWidth variant state =
-    case variant of
-        Transparent ->
-            1
-
-        _ ->
-            0
+        Enabled _ ->
+            bg variant
 
 
 buttonLabel : State -> Element msg
@@ -97,8 +59,8 @@ button { onClick, variant, state } =
         [ Background.color <| buttonBg variant state
         , Font.color <| buttonFg variant state
         , Border.rounded 4
-        , Border.color <| buttonBorder variant state
-        , Border.width <| buttonBorderWidth variant state
+        , Border.color <| border variant
+        , Border.width <| borderWidth variant
         , paddingXY 30 15
         ]
         { onPress =

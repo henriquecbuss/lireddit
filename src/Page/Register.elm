@@ -7,7 +7,9 @@ import Api.Object.User as User
 import Api.Object.UserResponse as UserResponse
 import Browser
 import Components.Button as Button
+import Components.LinkButton exposing (linkButton)
 import Components.UserForm exposing (userForm)
+import Components.Variant as Variant
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -145,6 +147,7 @@ view model =
             _ ->
                 [ layout [] <|
                     userForm
+                        Submitted
                         [ Error.viewInputWithError Input.username
                             [ Input.focusedOnLoad ]
                             { onChange = ChangedUsername
@@ -171,16 +174,23 @@ view model =
                             , show = password == ""
                             }
                             (List.filter isPasswordError errs)
-                        , Button.button
-                            { onClick = Submitted
-                            , variant = Button.Teal
-                            , state =
-                                if disabled then
-                                    Button.Loading
+                        , row [ width fill, spaceEvenly ]
+                            [ linkButton
+                                { route = Route.Home
+                                , variant = Variant.Gray
+                                , label = text "Go to Home"
+                                }
+                            , Button.button
+                                { onClick = Submitted
+                                , variant = Variant.Teal
+                                , state =
+                                    if disabled then
+                                        Button.Loading
 
-                                else
-                                    Button.Enabled "Register"
-                            }
+                                    else
+                                        Button.Enabled "Register"
+                                }
+                            ]
                         ]
                 ]
     }

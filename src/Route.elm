@@ -2,8 +2,9 @@ module Route exposing (Route(..), fromUrl, linkToRoute, replaceUrl)
 
 import Browser.Navigation as Nav
 import Element exposing (..)
+import Token as Token exposing (Token)
 import Url exposing (Url)
-import Url.Parser as Parser exposing (Parser, oneOf, s)
+import Url.Parser as Parser exposing ((</>), Parser, oneOf, s)
 
 
 
@@ -14,6 +15,8 @@ type Route
     = Home
     | Register
     | Login
+    | ForgotPassword
+    | ChangePassword Token
 
 
 parser : Parser (Route -> a) a
@@ -22,6 +25,8 @@ parser =
         [ Parser.map Home Parser.top
         , Parser.map Register (s "register")
         , Parser.map Login (s "login")
+        , Parser.map ChangePassword (s "change-password" </> Token.urlParser)
+        , Parser.map ForgotPassword (s "change-password")
         ]
 
 
@@ -67,3 +72,9 @@ routeToPieces page =
 
         Login ->
             [ "login" ]
+
+        ChangePassword token ->
+            [ "change-password", token ]
+
+        ForgotPassword ->
+            [ "change-password" ]

@@ -1,10 +1,13 @@
 module Main exposing (..)
 
+import Api.Mutation exposing (forgotPassword)
 import Api.Query as Query
 import Browser
 import Browser.Navigation as Nav
 import GraphQL exposing (GraphQLResult, query, userSelection)
 import Html exposing (..)
+import Page.ChangePassword as ChangePassword
+import Page.ForgotPassword as ForgotPassword
 import Page.Home as Home
 import Page.Login as Login
 import Page.NotFound as NotFound
@@ -23,6 +26,8 @@ type Model
     = Register Register.Model
     | Home Home.Model
     | Login Login.Model
+    | ChangePassword ChangePassword.Model
+    | ForgotPassword ForgotPassword.Model
     | NotFound Session
     | Redirect Session
 
@@ -40,6 +45,8 @@ type Msg
     = GotRegisterMsg Register.Msg
     | GotHomeMsg Home.Msg
     | GotLoginMsg Login.Msg
+    | GotChangePasswordMsg ChangePassword.Msg
+    | GotForgotPasswordMsg ForgotPassword.Msg
     | ChangedUrl Url.Url
     | RequestedUrl Browser.UrlRequest
     | GotSession (GraphQLResult (Maybe User))
@@ -87,6 +94,12 @@ view model =
         Login login ->
             viewPage (Login.view login) GotLoginMsg
 
+        ChangePassword changePassword ->
+            viewPage (ChangePassword.view changePassword) GotChangePasswordMsg
+
+        ForgotPassword forgotPassword ->
+            viewPage (ForgotPassword.view forgotPassword) GotForgotPasswordMsg
+
         NotFound _ ->
             NotFound.view
 
@@ -123,6 +136,14 @@ update msg model =
         ( GotLoginMsg loginMsg, Login login ) ->
             Login.update login loginMsg
                 |> updateWith Login GotLoginMsg model
+
+        ( GotChangePasswordMsg changePasswordMsg, ChangePassword changePassword ) ->
+            ChangePassword.update changePassword changePasswordMsg
+                |> updateWith ChangePassword GotChangePasswordMsg model
+
+        ( GotForgotPasswordMsg forgotPasswordMsg, ForgotPassword forgotPassword ) ->
+            ForgotPassword.update forgotPassword forgotPasswordMsg
+                |> updateWith ForgotPassword GotForgotPasswordMsg model
 
         ( GotSession result, _ ) ->
             case result of
@@ -189,6 +210,14 @@ changeRouteTo maybeRoute model =
             Register.init session
                 |> updateWithSession Register GotRegisterMsg model
 
+        Just (Route.ChangePassword token) ->
+            ChangePassword.init session token
+                |> updateWithSession ChangePassword GotChangePasswordMsg model
+
+        Just Route.ForgotPassword ->
+            ForgotPassword.init session
+                |> updateWithSession ForgotPassword GotForgotPasswordMsg model
+
 
 toSession : Model -> Session
 toSession page =
@@ -207,6 +236,12 @@ toSession page =
 
         Login login ->
             Login.toSession login
+
+        ChangePassword changePassword ->
+            ChangePassword.toSession changePassword
+
+        ForgotPassword forgotPassword ->
+            ForgotPassword.toSession forgotPassword
 
 
 updateSession : Model -> Maybe User -> Model
@@ -231,6 +266,14 @@ updateSession page maybeUser =
         Login login ->
             Login.updateSession login maybeUser
                 |> Login
+
+        ChangePassword changePassword ->
+            ChangePassword.updateSession changePassword maybeUser
+                |> ChangePassword
+
+        ForgotPassword forgotPassword ->
+            ForgotPassword.updateSession forgotPassword maybeUser
+                |> ForgotPassword
 
 
 
