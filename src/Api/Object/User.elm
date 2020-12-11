@@ -37,3 +37,8 @@ updatedAt =
 username : SelectionSet String Api.Object.User
 username =
     Object.selectionForField "String" "username" [] Decode.string
+
+
+email : SelectionSet String Api.Object.User
+email =
+    Object.selectionForField "String" "email" [] Decode.string

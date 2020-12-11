@@ -1,6 +1,7 @@
 module Error exposing
     ( Error
     , fromRecord
+    , isEmailError
     , isPasswordError
     , isUsernameError
     , toMessage
@@ -16,6 +17,7 @@ import Element.Font as Font
 type Error
     = UsernameError String
     | PasswordError String
+    | EmailError String
     | UnknownError String
 
 
@@ -39,6 +41,16 @@ isPasswordError err =
             False
 
 
+isEmailError : Error -> Bool
+isEmailError err =
+    case err of
+        EmailError _ ->
+            True
+
+        _ ->
+            False
+
+
 toMessage : Error -> String
 toMessage err =
     case err of
@@ -46,6 +58,9 @@ toMessage err =
             msg
 
         PasswordError msg ->
+            msg
+
+        EmailError msg ->
             msg
 
         UnknownError msg ->
@@ -59,6 +74,9 @@ fromRecord { field, message } =
 
     else if field == "password" then
         PasswordError message
+
+    else if field == "email" then
+        EmailError message
 
     else
         UnknownError message

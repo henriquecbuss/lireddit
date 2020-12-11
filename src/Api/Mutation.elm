@@ -67,6 +67,11 @@ deletePost requiredArgs =
     Object.selectionForField "Bool" "deletePost" [ Argument.required "id" requiredArgs.id Encode.float ] Decode.bool
 
 
+forgotPassword : SelectionSet Bool RootMutation
+forgotPassword =
+    Object.selectionForField "Bool" "forgotPassword" [] Decode.bool
+
+
 type alias RegisterRequiredArguments =
     { options : Api.InputObject.UsernamePasswordInput }
 
@@ -80,7 +85,9 @@ register requiredArgs object_ =
 
 
 type alias LoginRequiredArguments =
-    { options : Api.InputObject.UsernamePasswordInput }
+    { password : String
+    , usernameOrEmail : String
+    }
 
 
 login :
@@ -88,7 +95,7 @@ login :
     -> SelectionSet decodesTo Api.Object.UserResponse
     -> SelectionSet decodesTo RootMutation
 login requiredArgs object_ =
-    Object.selectionForCompositeField "login" [ Argument.required "options" requiredArgs.options Api.InputObject.encodeUsernamePasswordInput ] object_ identity
+    Object.selectionForCompositeField "login" [ Argument.required "password" requiredArgs.password Encode.string, Argument.required "usernameOrEmail" requiredArgs.usernameOrEmail Encode.string ] object_ identity
 
 
 logout : SelectionSet Bool RootMutation

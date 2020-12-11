@@ -6,14 +6,14 @@ import Api.Object.FieldError as FieldError
 import Api.Object.User as User
 import Api.Object.UserResponse as UserResponse
 import Browser
-import Components.Button exposing (Variant(..))
+import Components.Button as Button
 import Components.UserForm exposing (userForm)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Error exposing (Error, unknown)
+import Error exposing (Error, isEmailError, isPasswordError, isUsernameError, unknown)
 import GraphQL exposing (GraphQLResult, UserResult(..), mutation, userResultSelection)
 import Graphql.Http
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
@@ -31,10 +31,16 @@ type Model
     = Registering
         { session : Session
         , username : String
+        , email : String
         , password : String
         , errors : List Error
         }
-    | Loading { session : Session, username : String, password : String }
+    | Loading
+        { session : Session
+        , username : String
+        , email : String
+        , password : String
+        }
     | Registered { session : Session, user : User }
 
 
@@ -50,6 +56,7 @@ init session =
             ( Registering
                 { session = session
                 , username = ""
+                , email = ""
                 , password = ""
                 , errors = []
                 }
@@ -63,6 +70,7 @@ init session =
 
 type Msg
     = ChangedUsername String
+    | ChangedEmail String
     | ChangedPassword String
     | Submitted
     | SentRegistration (Result (Graphql.Http.Error UserResult) UserResult)
@@ -83,6 +91,17 @@ view model =
 
                 Loading l ->
                     l.username
+
+                _ ->
+                    ""
+
+        email =
+            case model of
+                Registering r ->
+                    r.email
+
+                Loading l ->
+                    l.email
 
                 _ ->
                     ""
@@ -126,17 +145,43 @@ view model =
             _ ->
                 [ layout [] <|
                     userForm
-                        { onUsernameChange = ChangedUsername
-                        , usernameText = username
-                        , errors = errs
-                        , newPassword = True
-                        , onPasswordChange = ChangedPassword
-                        , passwordText = password
-                        , variant = Teal
-                        , onSubmit = Submitted
-                        , buttonLabel = "Sign Up"
-                        , loading = disabled
-                        }
+                        [ Error.viewInputWithError Input.username
+                            [ Input.focusedOnLoad ]
+                            { onChange = ChangedUsername
+                            , text = username
+                            , placeholder =
+                                Just (Input.placeholder [] (text "username"))
+                            , label = Input.labelAbove [] (text "Username")
+                            }
+                            (List.filter isUsernameError errs)
+                        , Error.viewInputWithError Input.email
+                            []
+                            { onChange = ChangedEmail
+                            , text = email
+                            , placeholder = Just (Input.placeholder [] (text "email"))
+                            , label = Input.labelAbove [] (text "Email")
+                            }
+                            (List.filter isEmailError errs)
+                        , Error.viewInputWithError Input.newPassword
+                            []
+                            { onChange = ChangedPassword
+                            , text = password
+                            , placeholder = Just (Input.placeholder [] (text "password"))
+                            , label = Input.labelAbove [] (text "Password")
+                            , show = password == ""
+                            }
+                            (List.filter isPasswordError errs)
+                        , Button.button
+                            { onClick = Submitted
+                            , variant = Button.Teal
+                            , state =
+                                if disabled then
+                                    Button.Loading
+
+                                else
+                                    Button.Enabled "Register"
+                            }
+                        ]
                 ]
     }
 
@@ -151,18 +196,23 @@ update model msg =
         ( ChangedUsername username, Registering registering ) ->
             ( Registering { registering | username = username }, Cmd.none )
 
+        ( ChangedEmail email, Registering registering ) ->
+            ( Registering { registering | email = email }, Cmd.none )
+
         ( ChangedPassword password, Registering registering ) ->
             ( Registering { registering | password = password }, Cmd.none )
 
-        ( Submitted, Registering { session, username, password } ) ->
+        ( Submitted, Registering { session, username, email, password } ) ->
             ( Loading
                 { session = session
                 , username = username
+                , email = email
                 , password = password
                 }
             , registerUser
                 { options =
                     { username = username
+                    , email = email
                     , password = password
                     }
                 }
@@ -184,6 +234,7 @@ update model msg =
                     ( Registering
                         { session = l.session
                         , username = l.username
+                        , email = l.email
                         , password = l.password
                         , errors =
                             if List.isEmpty errors then
@@ -267,6 +318,7 @@ updateSession model maybeUser =
             Registering
                 { session = Session.updateSession r.session maybeUser
                 , username = ""
+                , email = ""
                 , password = ""
                 , errors = []
                 }
@@ -276,6 +328,8 @@ updateSession model maybeUser =
 -- GRAPHQL
 
 
-registerUser : { options : { username : String, password : String } } -> Cmd Msg
+registerUser :
+    { options : { username : String, email : String, password : String } }
+    -> Cmd Msg
 registerUser options =
     mutation (Mutation.register options userResultSelection) SentRegistration

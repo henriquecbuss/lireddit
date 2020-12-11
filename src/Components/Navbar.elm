@@ -40,6 +40,7 @@ navbar session loggedOut { isLoggingOut } =
         |> row
             [ width fill
             , paddingXY 100 40
+            , height <| minimum 100 <| maximum 100 fill
             , spacing 80
             , Background.color <| rgb255 31 107 142
             , Font.color <| rgb 1 1 1

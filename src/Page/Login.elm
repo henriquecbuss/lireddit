@@ -2,7 +2,7 @@ module Page.Login exposing (Model(..), Msg(..), init, toSession, update, updateS
 
 import Api.Mutation as Mutation
 import Browser
-import Components.Button exposing (Variant(..))
+import Components.Button as Button
 import Components.UserForm exposing (userForm)
 import Element exposing (..)
 import Element.Background as Background
@@ -25,11 +25,11 @@ import User exposing (User)
 type Model
     = Login
         { session : Session
-        , username : String
+        , usernameOrEmail : String
         , password : String
         , errors : List Error
         }
-    | Loading { session : Session, username : String, password : String }
+    | Loading { session : Session, usernameOrEmail : String, password : String }
     | LoggedIn { session : Session, user : User }
 
 
@@ -44,7 +44,7 @@ init session =
         Session.Guest key ->
             ( Login
                 { session = session
-                , username = ""
+                , usernameOrEmail = ""
                 , password = ""
                 , errors = []
                 }
@@ -73,13 +73,13 @@ view model =
     { title = "Login"
     , body =
         let
-            username =
+            usernameOrEmail =
                 case model of
                     Login l ->
-                        l.username
+                        l.usernameOrEmail
 
                     Loading l ->
-                        l.username
+                        l.usernameOrEmail
 
                     LoggedIn _ ->
                         ""
@@ -116,17 +116,37 @@ view model =
         in
         [ layout [] <|
             userForm
-                { onUsernameChange = ChangedUsername
-                , usernameText = username
-                , errors = errors
-                , newPassword = False
-                , onPasswordChange = ChangedPassword
-                , passwordText = password
-                , variant = Green
-                , onSubmit = Submitted
-                , buttonLabel = "Sign In"
-                , loading = loading
-                }
+                [ Error.viewInputWithError Input.username
+                    [ Input.focusedOnLoad ]
+                    { onChange = ChangedUsername
+                    , text = usernameOrEmail
+                    , placeholder = Just (Input.placeholder [] (text "username or email"))
+                    , label = Input.labelAbove [] (text "Username or email")
+                    }
+                    (List.filter
+                        (\e -> Error.isUsernameError e || Error.isEmailError e)
+                        errors
+                    )
+                , Error.viewInputWithError Input.currentPassword
+                    []
+                    { onChange = ChangedPassword
+                    , text = password
+                    , placeholder = Just (Input.placeholder [] (text "password"))
+                    , label = Input.labelAbove [] (text "Password")
+                    , show = password == ""
+                    }
+                    (List.filter Error.isPasswordError errors)
+                , Button.button
+                    { onClick = Submitted
+                    , variant = Button.Green
+                    , state =
+                        if loading then
+                            Button.Loading
+
+                        else
+                            Button.Enabled "Log In"
+                    }
+                ]
         ]
     }
 
@@ -138,17 +158,17 @@ view model =
 update : Model -> Msg -> ( Model, Cmd Msg )
 update model msg =
     case ( msg, model ) of
-        ( ChangedUsername username, Login login ) ->
-            ( Login { login | username = username }, Cmd.none )
+        ( ChangedUsername usernameOrEmail, Login login ) ->
+            ( Login { login | usernameOrEmail = usernameOrEmail }, Cmd.none )
 
         ( ChangedPassword password, Login login ) ->
             ( Login { login | password = password }, Cmd.none )
 
-        ( Submitted, Login { session, username, password } ) ->
+        ( Submitted, Login { session, usernameOrEmail, password } ) ->
             ( Loading
-                { session = session, username = username, password = password }
+                { session = session, usernameOrEmail = usernameOrEmail, password = password }
             , loginUser
-                { options = { username = username, password = password } }
+                { usernameOrEmail = usernameOrEmail, password = password }
             )
 
         ( SentLogin res, Loading l ) ->
@@ -165,7 +185,7 @@ update model msg =
                 Ok (WithError errors) ->
                     ( Login
                         { session = l.session
-                        , username = l.username
+                        , usernameOrEmail = l.usernameOrEmail
                         , password = l.password
                         , errors =
                             if List.isEmpty errors then
@@ -257,7 +277,7 @@ updateSession model maybeUser =
         ( LoggedIn l, Nothing ) ->
             Login
                 { session = Session.updateSession l.session maybeUser
-                , username = ""
+                , usernameOrEmail = ""
                 , password = ""
                 , errors = []
                 }
@@ -267,6 +287,6 @@ updateSession model maybeUser =
 -- GRAPHQL
 
 
-loginUser : { options : { username : String, password : String } } -> Cmd Msg
+loginUser : { usernameOrEmail : String, password : String } -> Cmd Msg
 loginUser options =
     mutation (Mutation.login options userResultSelection) SentLogin

@@ -7,11 +7,12 @@ import Api.Query as Query
 import Browser
 import Components.Navbar exposing (navbar)
 import Element exposing (..)
-import GraphQL exposing (GraphQLResult, query)
+import GraphQL exposing (GraphQLResult, postSelection, query)
 import Graphql.Http
 import Graphql.Operation exposing (RootMutation, RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet, with)
 import Html exposing (Html)
+import Post exposing (Post)
 import Route
 import Session exposing (Session)
 import User exposing (User)
@@ -23,7 +24,6 @@ import User exposing (User)
 
 type alias Model =
     { session : Session
-    , post : Maybe Post
     , posts : List Post
     , isLoggingOut : Bool
     }
@@ -31,8 +31,8 @@ type alias Model =
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( { session = session, post = Nothing, posts = [], isLoggingOut = False }
-    , query postsQuery GotPosts
+    ( { session = session, posts = [], isLoggingOut = False }
+    , fetchPosts
     )
 
 
@@ -41,8 +41,7 @@ init session =
 
 
 type Msg
-    = GotPost (GraphQLResult (Maybe Post))
-    | GotPosts (GraphQLResult (List Post))
+    = GotPosts (GraphQLResult (List Post))
     | RequestedLogOut
     | LoggedOut (GraphQLResult Bool)
 
@@ -60,8 +59,6 @@ view model =
                 [ navbar (toSession model)
                     RequestedLogOut
                     { isLoggingOut = model.isLoggingOut }
-                , Maybe.map viewPost model.post
-                    |> Maybe.withDefault (text "Single post")
                 , column [] <| List.map viewPost model.posts
                 ]
             )
@@ -81,16 +78,10 @@ viewPost post =
 update : Model -> Msg -> ( Model, Cmd Msg )
 update model msg =
     case msg of
-        GotPost (Ok maybePost) ->
-            ( { model | post = maybePost }, Cmd.none )
-
         GotPosts (Ok posts) ->
             ( { model | posts = posts }, Cmd.none )
 
         GotPosts _ ->
-            ( model, Cmd.none )
-
-        GotPost _ ->
             ( model, Cmd.none )
 
         RequestedLogOut ->
@@ -123,24 +114,6 @@ updateSession model maybeUser =
 -- GRAPHQL
 
 
-type alias Post =
-    { id : Float
-    , title : String
-    }
-
-
-postQuery : SelectionSet (Maybe Post) RootQuery
-postQuery =
-    Query.post { id = 1 } postInfoSelection
-
-
-postsQuery : SelectionSet (List Post) RootQuery
-postsQuery =
-    Query.posts postInfoSelection
-
-
-postInfoSelection : SelectionSet Post Api.Object.Post
-postInfoSelection =
-    SelectionSet.map2 Post
-        Post.id
-        Post.title
+fetchPosts : Cmd Msg
+fetchPosts =
+    query (Query.posts postSelection) GotPosts

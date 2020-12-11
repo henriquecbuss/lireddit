@@ -21,11 +21,12 @@ buildUsernamePasswordInput :
     UsernamePasswordInputRequiredFields
     -> UsernamePasswordInput
 buildUsernamePasswordInput required =
-    { username = required.username, password = required.password }
+    { username = required.username, email = required.email, password = required.password }
 
 
 type alias UsernamePasswordInputRequiredFields =
     { username : String
+    , email : String
     , password : String
     }
 
@@ -34,6 +35,7 @@ type alias UsernamePasswordInputRequiredFields =
 -}
 type alias UsernamePasswordInput =
     { username : String
+    , email : String
     , password : String
     }
 
@@ -43,4 +45,4 @@ type alias UsernamePasswordInput =
 encodeUsernamePasswordInput : UsernamePasswordInput -> Value
 encodeUsernamePasswordInput input =
     Encode.maybeObject
-        [ ( "username", Encode.string input.username |> Just ), ( "password", Encode.string input.password |> Just ) ]
+        [ ( "username", Encode.string input.username |> Just ), ( "email", Encode.string input.email |> Just ), ( "password", Encode.string input.password |> Just ) ]

@@ -3,6 +3,7 @@ module GraphQL exposing
     , UserResult(..)
     , getSession
     , mutation
+    , postSelection
     , query
     , userResultSelection
     , userSelection
@@ -10,6 +11,7 @@ module GraphQL exposing
 
 import Api.Object exposing (UserResponse)
 import Api.Object.FieldError as FieldError
+import Api.Object.Post as ObjPost
 import Api.Object.User as User
 import Api.Object.UserResponse as UserResponse
 import Api.Query as Query
@@ -17,6 +19,7 @@ import Browser.Navigation as Nav
 import Graphql.Http exposing (Request)
 import Graphql.Operation exposing (RootMutation, RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
+import Post exposing (Post)
 import User exposing (User)
 
 
@@ -96,7 +99,7 @@ errorsSelection =
 
 userSelection : SelectionSet User Api.Object.User
 userSelection =
-    SelectionSet.map2 User User.id User.username
+    SelectionSet.map3 User User.id User.username User.email
 
 
 userResultSelection : SelectionSet UserResult Api.Object.UserResponse
@@ -116,3 +119,8 @@ userResultSelection =
                     ( Nothing, Just u ) ->
                         WithUser u
             )
+
+
+postSelection : SelectionSet Post Api.Object.Post
+postSelection =
+    SelectionSet.map2 Post ObjPost.id ObjPost.title
