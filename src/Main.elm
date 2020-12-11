@@ -7,6 +7,7 @@ import Browser.Navigation as Nav
 import GraphQL exposing (GraphQLResult, query, userSelection)
 import Html exposing (..)
 import Page.ChangePassword as ChangePassword
+import Page.CreatePost as CreatePost
 import Page.ForgotPassword as ForgotPassword
 import Page.Home as Home
 import Page.Login as Login
@@ -28,6 +29,7 @@ type Model
     | Login Login.Model
     | ChangePassword ChangePassword.Model
     | ForgotPassword ForgotPassword.Model
+    | CreatePost CreatePost.Model
     | NotFound Session
     | Redirect Session
 
@@ -47,6 +49,7 @@ type Msg
     | GotLoginMsg Login.Msg
     | GotChangePasswordMsg ChangePassword.Msg
     | GotForgotPasswordMsg ForgotPassword.Msg
+    | GotCreatePostMsg CreatePost.Msg
     | ChangedUrl Url.Url
     | RequestedUrl Browser.UrlRequest
     | GotSession (GraphQLResult (Maybe User))
@@ -100,6 +103,9 @@ view model =
         ForgotPassword forgotPassword ->
             viewPage (ForgotPassword.view forgotPassword) GotForgotPasswordMsg
 
+        CreatePost createPost ->
+            viewPage (CreatePost.view createPost) GotCreatePostMsg
+
         NotFound _ ->
             NotFound.view
 
@@ -144,6 +150,10 @@ update msg model =
         ( GotForgotPasswordMsg forgotPasswordMsg, ForgotPassword forgotPassword ) ->
             ForgotPassword.update forgotPassword forgotPasswordMsg
                 |> updateWith ForgotPassword GotForgotPasswordMsg model
+
+        ( GotCreatePostMsg createPostMsg, CreatePost createPost ) ->
+            CreatePost.update createPost createPostMsg
+                |> updateWith CreatePost GotCreatePostMsg model
 
         ( GotSession result, _ ) ->
             case result of
@@ -218,6 +228,10 @@ changeRouteTo maybeRoute model =
             ForgotPassword.init session
                 |> updateWithSession ForgotPassword GotForgotPasswordMsg model
 
+        Just Route.CreatePost ->
+            CreatePost.init session
+                |> updateWithSession CreatePost GotCreatePostMsg model
+
 
 toSession : Model -> Session
 toSession page =
@@ -242,6 +256,9 @@ toSession page =
 
         ForgotPassword forgotPassword ->
             ForgotPassword.toSession forgotPassword
+
+        CreatePost createPost ->
+            CreatePost.toSession createPost
 
 
 updateSession : Model -> Maybe User -> Model
@@ -274,6 +291,10 @@ updateSession page maybeUser =
         ForgotPassword forgotPassword ->
             ForgotPassword.updateSession forgotPassword maybeUser
                 |> ForgotPassword
+
+        CreatePost createPost ->
+            CreatePost.updateSession createPost maybeUser
+                |> CreatePost
 
 
 

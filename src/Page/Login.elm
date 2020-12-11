@@ -118,8 +118,7 @@ view model =
                         True
         in
         [ layout [] <|
-            userForm
-                Submitted
+            userForm (Just Submitted)
                 [ Error.viewInputWithError Input.username
                     [ Input.focusedOnLoad ]
                     { onChange = ChangedUsername
@@ -151,12 +150,6 @@ view model =
                         , variant = Variant.Teal
                         , label = text "Forgot Password"
                         }
-
-                    -- , Button.button
-                    --     { onClick = ForgotPassword
-                    --     , variant = Variant.Teal
-                    --     , state = Button.Enabled "Forgot Password"
-                    --     }
                     , Button.button
                         { onClick = Submitted
                         , variant = Variant.Green
@@ -201,7 +194,8 @@ update model msg =
                             Session.LoggedIn (Session.navKey l.session) user
                         , user = user
                         }
-                    , Route.replaceUrl (Session.navKey l.session) Route.Home
+                      -- , Route.replaceUrl (Session.navKey l.session) Route.Home
+                    , Route.previousPage (Session.navKey l.session)
                     )
 
                 Ok (WithError errors) ->

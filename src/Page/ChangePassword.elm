@@ -146,7 +146,7 @@ view model =
                 _ ->
                     column [ width fill ]
                         [ userForm
-                            Submitted
+                            (Just Submitted)
                             [ Error.viewInputWithError Input.newPassword
                                 [ Input.focusedOnLoad ]
                                 { onChange = PasswordChanged

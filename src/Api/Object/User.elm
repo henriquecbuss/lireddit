@@ -24,16 +24,6 @@ id =
     Object.selectionForField "Float" "id" [] Decode.float
 
 
-createdAt : SelectionSet String Api.Object.User
-createdAt =
-    Object.selectionForField "String" "createdAt" [] Decode.string
-
-
-updatedAt : SelectionSet String Api.Object.User
-updatedAt =
-    Object.selectionForField "String" "updatedAt" [] Decode.string
-
-
 username : SelectionSet String Api.Object.User
 username =
     Object.selectionForField "String" "username" [] Decode.string
@@ -42,3 +32,13 @@ username =
 email : SelectionSet String Api.Object.User
 email =
     Object.selectionForField "String" "email" [] Decode.string
+
+
+createdAt : SelectionSet String Api.Object.User
+createdAt =
+    Object.selectionForField "String" "createdAt" [] Decode.string
+
+
+updatedAt : SelectionSet String Api.Object.User
+updatedAt =
+    Object.selectionForField "String" "updatedAt" [] Decode.string

@@ -146,8 +146,7 @@ view model =
 
             _ ->
                 [ layout [] <|
-                    userForm
-                        Submitted
+                    userForm (Just Submitted)
                         [ Error.viewInputWithError Input.username
                             [ Input.focusedOnLoad ]
                             { onChange = ChangedUsername
@@ -237,7 +236,7 @@ update model msg =
                                 user
                         , user = user
                         }
-                    , Route.replaceUrl (Session.navKey l.session) Route.Home
+                    , Route.previousPage (Session.navKey l.session)
                     )
 
                 Ok (WithError errors) ->

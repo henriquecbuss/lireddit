@@ -17,6 +17,35 @@ import Graphql.SelectionSet exposing (SelectionSet)
 import Json.Decode as Decode
 
 
+buildPostInput :
+    PostInputRequiredFields
+    -> PostInput
+buildPostInput required =
+    { title = required.title, text = required.text }
+
+
+type alias PostInputRequiredFields =
+    { title : String
+    , text : String
+    }
+
+
+{-| Type for the PostInput input object.
+-}
+type alias PostInput =
+    { title : String
+    , text : String
+    }
+
+
+{-| Encode a PostInput into a value that can be used as an argument.
+-}
+encodePostInput : PostInput -> Value
+encodePostInput input =
+    Encode.maybeObject
+        [ ( "title", Encode.string input.title |> Just ), ( "text", Encode.string input.text |> Just ) ]
+
+
 buildUsernamePasswordInput :
     UsernamePasswordInputRequiredFields
     -> UsernamePasswordInput

@@ -11,7 +11,7 @@ import Html.Events as Events
 import Json.Decode as Decode
 
 
-userForm : msg -> List (Element msg) -> Element msg
+userForm : Maybe msg -> List (Element msg) -> Element msg
 userForm onEnter =
     column
         [ height fill
@@ -19,17 +19,23 @@ userForm onEnter =
         , padding 80
         , spacing 30
         , centerX
-        , Element.htmlAttribute
-            (Events.on "keyup"
-                (Decode.field "key" Decode.string
-                    |> Decode.andThen
-                        (\key ->
-                            if key == "Enter" then
-                                Decode.succeed onEnter
+        , case onEnter of
+            Nothing ->
+                -- Repeat an attribute so it doesn't do anything
+                centerX
 
-                            else
-                                Decode.fail "Not the enter key"
+            Just f ->
+                Element.htmlAttribute
+                    (Events.on "keyup"
+                        (Decode.field "key" Decode.string
+                            |> Decode.andThen
+                                (\key ->
+                                    if key == "Enter" then
+                                        Decode.succeed f
+
+                                    else
+                                        Decode.fail "Not the enter key"
+                                )
                         )
-                )
-            )
+                    )
         ]

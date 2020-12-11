@@ -1,4 +1,4 @@
-module Route exposing (Route(..), fromUrl, linkToRoute, replaceUrl)
+module Route exposing (Route(..), fromUrl, linkToRoute, previousPage, replaceUrl)
 
 import Browser.Navigation as Nav
 import Element exposing (..)
@@ -17,6 +17,7 @@ type Route
     | Login
     | ForgotPassword
     | ChangePassword Token
+    | CreatePost
 
 
 parser : Parser (Route -> a) a
@@ -27,6 +28,7 @@ parser =
         , Parser.map Login (s "login")
         , Parser.map ChangePassword (s "change-password" </> Token.urlParser)
         , Parser.map ForgotPassword (s "change-password")
+        , Parser.map CreatePost (s "create-post")
         ]
 
 
@@ -37,6 +39,11 @@ parser =
 replaceUrl : Nav.Key -> Route -> Cmd msg
 replaceUrl key route =
     Nav.replaceUrl key (toString route)
+
+
+previousPage : Nav.Key -> Cmd msg
+previousPage key =
+    Nav.back key 1
 
 
 fromUrl : Url -> Maybe Route
@@ -78,3 +85,6 @@ routeToPieces page =
 
         ForgotPassword ->
             [ "change-password" ]
+
+        CreatePost ->
+            [ "create-post" ]

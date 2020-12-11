@@ -19,7 +19,8 @@ navbar session loggedOut { isLoggingOut } =
     in
     (case session of
         LoggedIn _ user ->
-            [ el [ alignRight ] <| text user.username
+            [ linkToRoute linkStyles { route = Route.CreatePost, label = text "Create Post" }
+            , el [ alignRight ] <| text user.username
             , Button.button
                 { onClick = loggedOut
                 , variant = Variant.Transparent

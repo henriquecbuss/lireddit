@@ -20,7 +20,7 @@ import Json.Decode as Decode exposing (Decoder)
 
 
 type alias CreatePostRequiredArguments =
-    { title : String }
+    { options : Api.InputObject.PostInput }
 
 
 createPost :
@@ -28,7 +28,7 @@ createPost :
     -> SelectionSet decodesTo Api.Object.Post
     -> SelectionSet decodesTo RootMutation
 createPost requiredArgs object_ =
-    Object.selectionForCompositeField "createPost" [ Argument.required "title" requiredArgs.title Encode.string ] object_ identity
+    Object.selectionForCompositeField "createPost" [ Argument.required "options" requiredArgs.options Api.InputObject.encodePostInput ] object_ identity
 
 
 type alias UpdatePostOptionalArguments =

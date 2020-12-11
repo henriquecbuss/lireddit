@@ -24,6 +24,26 @@ id =
     Object.selectionForField "Float" "id" [] Decode.float
 
 
+title : SelectionSet String Api.Object.Post
+title =
+    Object.selectionForField "String" "title" [] Decode.string
+
+
+text : SelectionSet String Api.Object.Post
+text =
+    Object.selectionForField "String" "text" [] Decode.string
+
+
+points : SelectionSet Float Api.Object.Post
+points =
+    Object.selectionForField "Float" "points" [] Decode.float
+
+
+creatorId : SelectionSet Float Api.Object.Post
+creatorId =
+    Object.selectionForField "Float" "creatorId" [] Decode.float
+
+
 createdAt : SelectionSet String Api.Object.Post
 createdAt =
     Object.selectionForField "String" "createdAt" [] Decode.string
@@ -32,8 +52,3 @@ createdAt =
 updatedAt : SelectionSet String Api.Object.Post
 updatedAt =
     Object.selectionForField "String" "updatedAt" [] Decode.string
-
-
-title : SelectionSet String Api.Object.Post
-title =
-    Object.selectionForField "String" "title" [] Decode.string

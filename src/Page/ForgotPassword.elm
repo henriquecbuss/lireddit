@@ -91,7 +91,7 @@ view model =
                         text "Change your password with the link sent to your email"
 
                 _ ->
-                    userForm Submitted
+                    userForm (Just Submitted)
                         [ Input.email []
                             { onChange = ChangedEmail
                             , text = email
