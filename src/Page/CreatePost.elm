@@ -198,20 +198,24 @@ toSession model =
             e.session
 
 
-updateSession : Model -> Maybe User -> Model
+updateSession : Model -> Maybe User -> ( Model, Cmd Msg )
 updateSession model maybeUser =
+    let
+        updatedSession session =
+            Session.updateSession session maybeUser
+    in
     case model of
         Posting p ->
-            Posting { p | session = Session.updateSession p.session maybeUser }
+            ( Posting { p | session = updatedSession p.session }, Cmd.none )
 
         Loading l ->
-            Loading { l | session = Session.updateSession l.session maybeUser }
+            ( Loading { l | session = updatedSession l.session }, Cmd.none )
 
         Posted p ->
-            Posted { p | session = Session.updateSession p.session maybeUser }
+            ( Posted { p | session = updatedSession p.session }, Cmd.none )
 
         Errored e ->
-            Errored { e | session = Session.updateSession e.session maybeUser }
+            ( Errored { e | session = updatedSession e.session }, Cmd.none )
 
 
 

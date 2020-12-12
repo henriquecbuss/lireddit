@@ -158,13 +158,28 @@ update msg model =
         ( GotSession result, _ ) ->
             case result of
                 Ok user ->
-                    ( updateSession model user, Cmd.none )
+                    updateSession model user
 
                 Err _ ->
                     ( model, Cmd.none )
 
         -- Disregard invalid messages
-        _ ->
+        ( GotRegisterMsg _, _ ) ->
+            ( model, Cmd.none )
+
+        ( GotHomeMsg _, _ ) ->
+            ( model, Cmd.none )
+
+        ( GotLoginMsg _, _ ) ->
+            ( model, Cmd.none )
+
+        ( GotChangePasswordMsg _, _ ) ->
+            ( model, Cmd.none )
+
+        ( GotForgotPasswordMsg _, _ ) ->
+            ( model, Cmd.none )
+
+        ( GotCreatePostMsg _, _ ) ->
             ( model, Cmd.none )
 
 
@@ -261,40 +276,36 @@ toSession page =
             CreatePost.toSession createPost
 
 
-updateSession : Model -> Maybe User -> Model
+updateSession : Model -> Maybe User -> ( Model, Cmd Msg )
 updateSession page maybeUser =
     case page of
         Redirect session ->
-            Session.updateSession session maybeUser
-                |> Redirect
+            ( page, Cmd.none )
 
         NotFound session ->
-            Session.updateSession session maybeUser
-                |> NotFound
+            ( page, Cmd.none )
 
         Home home ->
             Home.updateSession home maybeUser
-                |> Home
+                |> updateWith Home GotHomeMsg page
 
         Register register ->
             Register.updateSession register maybeUser
-                |> Register
+                |> updateWith Register GotRegisterMsg page
 
         Login login ->
             Login.updateSession login maybeUser
-                |> Login
+                |> updateWith Login GotLoginMsg page
 
         ChangePassword changePassword ->
-            ChangePassword.updateSession changePassword maybeUser
-                |> ChangePassword
+            ( page, Cmd.none )
 
         ForgotPassword forgotPassword ->
-            ForgotPassword.updateSession forgotPassword maybeUser
-                |> ForgotPassword
+            ( page, Cmd.none )
 
         CreatePost createPost ->
             CreatePost.updateSession createPost maybeUser
-                |> CreatePost
+                |> updateWith CreatePost GotCreatePostMsg page
 
 
 

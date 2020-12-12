@@ -51,7 +51,7 @@ init session =
                 , password = ""
                 , errors = []
                 }
-            , GraphQL.getSession key GotSession
+            , Cmd.none
             )
 
 
@@ -64,7 +64,6 @@ type Msg
     | ChangedPassword String
     | Submitted
     | SentLogin (GraphQLResult UserResult)
-    | GotSession (GraphQLResult (Maybe User))
 
 
 
@@ -216,23 +215,6 @@ update model msg =
                 Err _ ->
                     ( model, Cmd.none )
 
-        ( GotSession result, _ ) ->
-            case result of
-                Ok maybeUser ->
-                    case maybeUser of
-                        Nothing ->
-                            ( model, Cmd.none )
-
-                        Just user ->
-                            ( updateSession model maybeUser
-                            , Route.replaceUrl
-                                (Session.navKey (toSession model))
-                                Route.Home
-                            )
-
-                Err _ ->
-                    ( model, Cmd.none )
-
         -- Invalid states
         ( ChangedUsername _, _ ) ->
             ( model, Cmd.none )
@@ -264,39 +246,51 @@ toSession m =
             session
 
 
-updateSession : Model -> Maybe User -> Model
+updateSession : Model -> Maybe User -> ( Model, Cmd Msg )
 updateSession model maybeUser =
     let
         makeLoggedIn session user =
-            LoggedIn
-                { session = Session.updateSession session (Just user)
+            let
+                newSession =
+                    Session.updateSession session (Just user)
+            in
+            ( LoggedIn
+                { session = newSession
                 , user = user
                 }
+            , Route.previousPage (Session.navKey newSession)
+            )
     in
     case ( model, maybeUser ) of
         ( Login l, Just user ) ->
             makeLoggedIn l.session user
 
         ( Login l, Nothing ) ->
-            Login
+            ( Login
                 { l | session = Session.updateSession l.session maybeUser }
+            , Cmd.none
+            )
 
         ( Loading l, Just user ) ->
             makeLoggedIn l.session user
 
         ( Loading l, Nothing ) ->
-            Loading { l | session = Session.updateSession l.session maybeUser }
+            ( Loading { l | session = Session.updateSession l.session maybeUser }
+            , Cmd.none
+            )
 
         ( LoggedIn l, Just user ) ->
             makeLoggedIn l.session user
 
         ( LoggedIn l, Nothing ) ->
-            Login
+            ( Login
                 { session = Session.updateSession l.session maybeUser
                 , usernameOrEmail = ""
                 , password = ""
                 , errors = []
                 }
+            , Cmd.none
+            )
 
 
 

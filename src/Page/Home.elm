@@ -90,7 +90,7 @@ update model msg =
         LoggedOut result ->
             case result of
                 Ok True ->
-                    ( updateSession model Nothing, Cmd.none )
+                    updateSession model Nothing
 
                 _ ->
                     ( model, Cmd.none )
@@ -105,9 +105,11 @@ toSession =
     .session
 
 
-updateSession : Model -> Maybe User -> Model
+updateSession : Model -> Maybe User -> ( Model, Cmd Msg )
 updateSession model maybeUser =
-    { model | session = Session.updateSession model.session maybeUser }
+    ( { model | session = Session.updateSession model.session maybeUser }
+    , Cmd.none
+    )
 
 
 

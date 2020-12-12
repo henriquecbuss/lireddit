@@ -62,7 +62,7 @@ init session =
                 , password = ""
                 , errors = []
                 }
-            , GraphQL.getSession key GotSession
+            , Cmd.none
             )
 
 
@@ -75,8 +75,7 @@ type Msg
     | ChangedEmail String
     | ChangedPassword String
     | Submitted
-    | SentRegistration (Result (Graphql.Http.Error UserResult) UserResult)
-    | GotSession (GraphQLResult (Maybe User))
+    | SentRegistration (GraphQLResult UserResult)
 
 
 
@@ -258,23 +257,6 @@ update model msg =
                 Err _ ->
                     ( model, Cmd.none )
 
-        ( GotSession result, _ ) ->
-            case result of
-                Ok maybeUser ->
-                    case maybeUser of
-                        Nothing ->
-                            ( model, Cmd.none )
-
-                        Just user ->
-                            ( updateSession model maybeUser
-                            , Route.replaceUrl
-                                (Session.navKey (toSession model))
-                                Route.Home
-                            )
-
-                Err _ ->
-                    ( model, Cmd.none )
-
         -- Disregard invalid states
         _ ->
             ( model, Cmd.none )
@@ -297,40 +279,52 @@ toSession m =
             r.session
 
 
-updateSession : Model -> Maybe User -> Model
+updateSession : Model -> Maybe User -> ( Model, Cmd Msg )
 updateSession model maybeUser =
     let
         makeRegistered session user =
-            Registered
+            let
+                newSession =
+                    Session.updateSession session (Just user)
+            in
+            ( Registered
                 { session = Session.updateSession session (Just user)
                 , user = user
                 }
+            , Route.previousPage (Session.navKey newSession)
+            )
     in
     case ( model, maybeUser ) of
         ( Registering r, Just user ) ->
             makeRegistered r.session user
 
         ( Registering r, Nothing ) ->
-            Registering
+            ( Registering
                 { r | session = Session.updateSession r.session maybeUser }
+            , Cmd.none
+            )
 
         ( Loading l, Just user ) ->
             makeRegistered l.session user
 
         ( Loading l, Nothing ) ->
-            Loading { l | session = Session.updateSession l.session maybeUser }
+            ( Loading { l | session = Session.updateSession l.session maybeUser }
+            , Cmd.none
+            )
 
         ( Registered r, Just user ) ->
             makeRegistered r.session user
 
         ( Registered r, Nothing ) ->
-            Registering
+            ( Registering
                 { session = Session.updateSession r.session maybeUser
                 , username = ""
                 , email = ""
                 , password = ""
                 , errors = []
                 }
+            , Cmd.none
+            )
 
 
 
