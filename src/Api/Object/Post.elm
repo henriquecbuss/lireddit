@@ -52,3 +52,8 @@ createdAt =
 updatedAt : SelectionSet String Api.Object.Post
 updatedAt =
     Object.selectionForField "String" "updatedAt" [] Decode.string
+
+
+textSnippet : SelectionSet String Api.Object.Post
+textSnippet =
+    Object.selectionForField "String" "textSnippet" [] Decode.string

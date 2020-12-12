@@ -19,11 +19,29 @@ import Graphql.SelectionSet exposing (SelectionSet)
 import Json.Decode as Decode exposing (Decoder)
 
 
+type alias PostsOptionalArguments =
+    { cursor : OptionalArgument String }
+
+
+type alias PostsRequiredArguments =
+    { limit : Int }
+
+
 posts :
-    SelectionSet decodesTo Api.Object.Post
+    (PostsOptionalArguments -> PostsOptionalArguments)
+    -> PostsRequiredArguments
+    -> SelectionSet decodesTo Api.Object.Post
     -> SelectionSet (List decodesTo) RootQuery
-posts object_ =
-    Object.selectionForCompositeField "posts" [] object_ (identity >> Decode.list)
+posts fillInOptionals requiredArgs object_ =
+    let
+        filledInOptionals =
+            fillInOptionals { cursor = Absent }
+
+        optionalArgs =
+            [ Argument.optional "cursor" filledInOptionals.cursor Encode.string ]
+                |> List.filterMap identity
+    in
+    Object.selectionForCompositeField "posts" (optionalArgs ++ [ Argument.required "limit" requiredArgs.limit Encode.int ]) object_ (identity >> Decode.list)
 
 
 type alias PostRequiredArguments =

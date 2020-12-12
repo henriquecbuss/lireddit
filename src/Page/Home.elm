@@ -5,11 +5,18 @@ import Api.Object
 import Api.Object.Post as Post
 import Api.Query as Query
 import Browser
+import Components.Button as Button exposing (button)
+import Components.Card exposing (card)
+import Components.LinkButton exposing (linkButton)
 import Components.Navbar exposing (navbar)
+import Components.Variant as Variant
 import Element exposing (..)
-import GraphQL exposing (GraphQLResult, postSelection, query)
+import Element.Font as Font
+import Element.Region as Region
+import GraphQL exposing (GraphQLResult, postSelection, postWithSnippetSelection, query)
 import Graphql.Http
 import Graphql.Operation exposing (RootMutation, RootQuery)
+import Graphql.OptionalArgument as OptionalArgument
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet, with)
 import Html exposing (Html)
 import Post exposing (Post)
@@ -22,17 +29,15 @@ import User exposing (User)
 -- MODEL
 
 
-type alias Model =
-    { session : Session
-    , posts : List Post
-    , isLoggingOut : Bool
-    }
+type Model
+    = WithData { session : Session, posts : List Post, isLoggingOut : Bool }
+    | Loading { session : Session, posts : List Post, isLoggingOut : Bool }
 
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( { session = session, posts = [], isLoggingOut = False }
-    , fetchPosts
+    ( Loading { session = session, posts = [], isLoggingOut = False }
+    , fetchPosts { limit = 10, cursor = Nothing }
     )
 
 
@@ -44,6 +49,7 @@ type Msg
     = GotPosts (GraphQLResult (List Post))
     | RequestedLogOut
     | LoggedOut (GraphQLResult Bool)
+    | RequestedPosts
 
 
 
@@ -52,14 +58,99 @@ type Msg
 
 view : Model -> Browser.Document Msg
 view model =
+    let
+        isLoggingOut =
+            case model of
+                WithData wd ->
+                    wd.isLoggingOut
+
+                Loading l ->
+                    l.isLoggingOut
+
+        isLoggedIn =
+            case toSession model of
+                Session.LoggedIn _ _ ->
+                    True
+
+                Session.Guest _ ->
+                    False
+
+        posts =
+            case model of
+                WithData wd ->
+                    wd.posts
+
+                Loading l ->
+                    l.posts
+
+        isInitialLoad =
+            case model of
+                Loading l ->
+                    List.isEmpty l.posts
+
+                _ ->
+                    False
+    in
     { title = "Home"
     , body =
         [ layout []
             (column [ spacing 40, width fill ]
                 [ navbar (toSession model)
                     RequestedLogOut
-                    { isLoggingOut = model.isLoggingOut }
-                , column [] <| List.map viewPost model.posts
+                    { isLoggingOut = isLoggingOut }
+                , row
+                    [ width <| maximum 1000 fill, centerX, spaceEvenly ]
+                    [ el
+                        [ Region.heading 1
+                        , Font.bold
+                        , Font.color <| rgb255 0 128 128
+                        , Font.size 48
+                        ]
+                        (text "LiReddit")
+                    , if isLoggedIn then
+                        linkButton
+                            { route = Route.CreatePost
+                            , variant = Variant.Teal
+                            , label = text "Create Post"
+                            }
+
+                      else
+                        none
+                    ]
+                , if isInitialLoad then
+                    text "Loading"
+
+                  else
+                    column
+                        [ spacing 60
+                        , paddingEach { top = 0, left = 0, right = 0, bottom = 50 }
+                        , width <| maximum 1000 fill
+                        , centerX
+                        ]
+                    <|
+                        List.map viewPost posts
+                            ++ [ el
+                                    [ centerX
+                                    , paddingEach
+                                        { top = 0
+                                        , left = 0
+                                        , right = 0
+                                        , bottom = 100
+                                        }
+                                    ]
+                                 <|
+                                    button
+                                        { onClick = RequestedPosts
+                                        , variant = Variant.Teal
+                                        , state =
+                                            case model of
+                                                Loading _ ->
+                                                    Button.Loading
+
+                                                WithData _ ->
+                                                    Button.Enabled "More posts"
+                                        }
+                               ]
                 ]
             )
         ]
@@ -68,7 +159,7 @@ view model =
 
 viewPost : Post -> Element Msg
 viewPost post =
-    row [ spacing 20 ] [ text <| String.fromFloat post.id, text post.title ]
+    card [] ( text post.title, paragraph [] [ text post.text ] )
 
 
 
@@ -77,17 +168,17 @@ viewPost post =
 
 update : Model -> Msg -> ( Model, Cmd Msg )
 update model msg =
-    case msg of
-        GotPosts (Ok posts) ->
-            ( { model | posts = posts }, Cmd.none )
+    case ( msg, model ) of
+        ( GotPosts (Ok posts), Loading l ) ->
+            ( WithData { l | posts = l.posts ++ posts }, Cmd.none )
 
-        GotPosts _ ->
+        ( GotPosts _, _ ) ->
             ( model, Cmd.none )
 
-        RequestedLogOut ->
+        ( RequestedLogOut, _ ) ->
             ( model, GraphQL.mutation Mutation.logout LoggedOut )
 
-        LoggedOut result ->
+        ( LoggedOut result, _ ) ->
             case result of
                 Ok True ->
                     updateSession model Nothing
@@ -95,27 +186,61 @@ update model msg =
                 _ ->
                     ( model, Cmd.none )
 
+        ( RequestedPosts, WithData wd ) ->
+            let
+                maybeLastPost =
+                    List.drop (List.length wd.posts - 2) wd.posts
+                        |> List.head
+            in
+            case maybeLastPost of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                Just lastPost ->
+                    ( Loading wd, fetchPosts { limit = 10, cursor = Just lastPost.createdAt } )
+
+        -- Invalid messages
+        ( RequestedPosts, _ ) ->
+            ( model, Cmd.none )
+
 
 
 -- EXPORT
 
 
 toSession : Model -> Session
-toSession =
-    .session
+toSession model =
+    case model of
+        WithData wd ->
+            wd.session
+
+        Loading l ->
+            l.session
 
 
 updateSession : Model -> Maybe User -> ( Model, Cmd Msg )
 updateSession model maybeUser =
-    ( { model | session = Session.updateSession model.session maybeUser }
-    , Cmd.none
-    )
+    case model of
+        WithData wd ->
+            ( WithData { wd | session = Session.updateSession wd.session maybeUser }
+            , Cmd.none
+            )
+
+        Loading l ->
+            ( Loading { l | session = Session.updateSession l.session maybeUser }
+            , Cmd.none
+            )
 
 
 
 -- GRAPHQL
 
 
-fetchPosts : Cmd Msg
-fetchPosts =
-    query (Query.posts postSelection) GotPosts
+fetchPosts : { limit : Int, cursor : Maybe String } -> Cmd Msg
+fetchPosts { limit, cursor } =
+    query
+        (Query.posts (\args -> { args | cursor = OptionalArgument.fromMaybe cursor })
+            { limit = limit }
+            postWithSnippetSelection
+        )
+        GotPosts

@@ -4,6 +4,7 @@ module GraphQL exposing
     , getSession
     , mutation
     , postSelection
+    , postWithSnippetSelection
     , query
     , userResultSelection
     , userSelection
@@ -123,4 +124,9 @@ userResultSelection =
 
 postSelection : SelectionSet Post Api.Object.Post
 postSelection =
-    SelectionSet.map2 Post ObjPost.id ObjPost.title
+    SelectionSet.map4 Post ObjPost.id ObjPost.title ObjPost.text ObjPost.createdAt
+
+
+postWithSnippetSelection : SelectionSet Post Api.Object.Post
+postWithSnippetSelection =
+    SelectionSet.map4 Post ObjPost.id ObjPost.title ObjPost.textSnippet ObjPost.createdAt
