@@ -5,6 +5,8 @@ module GraphQL exposing
     , mutation
     , postSelection
     , postWithSnippetSelection
+    , postsSelection
+    , postsWithSnippetSelection
     , query
     , userResultSelection
     , userSelection
@@ -12,6 +14,7 @@ module GraphQL exposing
 
 import Api.Object exposing (UserResponse)
 import Api.Object.FieldError as FieldError
+import Api.Object.PaginatedPosts as ObjPagPosts
 import Api.Object.Post as ObjPost
 import Api.Object.User as User
 import Api.Object.UserResponse as UserResponse
@@ -20,7 +23,7 @@ import Browser.Navigation as Nav
 import Graphql.Http exposing (Request)
 import Graphql.Operation exposing (RootMutation, RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
-import Post exposing (Post)
+import Post exposing (PaginatedPosts, Post)
 import User exposing (User)
 
 
@@ -130,3 +133,17 @@ postSelection =
 postWithSnippetSelection : SelectionSet Post Api.Object.Post
 postWithSnippetSelection =
     SelectionSet.map4 Post ObjPost.id ObjPost.title ObjPost.textSnippet ObjPost.createdAt
+
+
+postsSelection : SelectionSet PaginatedPosts Api.Object.PaginatedPosts
+postsSelection =
+    SelectionSet.map2 PaginatedPosts
+        (ObjPagPosts.posts postSelection)
+        ObjPagPosts.hasMore
+
+
+postsWithSnippetSelection : SelectionSet PaginatedPosts Api.Object.PaginatedPosts
+postsWithSnippetSelection =
+    SelectionSet.map2 PaginatedPosts
+        (ObjPagPosts.posts postWithSnippetSelection)
+        ObjPagPosts.hasMore

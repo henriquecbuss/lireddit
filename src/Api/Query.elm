@@ -30,8 +30,8 @@ type alias PostsRequiredArguments =
 posts :
     (PostsOptionalArguments -> PostsOptionalArguments)
     -> PostsRequiredArguments
-    -> SelectionSet decodesTo Api.Object.Post
-    -> SelectionSet (List decodesTo) RootQuery
+    -> SelectionSet decodesTo Api.Object.PaginatedPosts
+    -> SelectionSet decodesTo RootQuery
 posts fillInOptionals requiredArgs object_ =
     let
         filledInOptionals =
@@ -41,7 +41,7 @@ posts fillInOptionals requiredArgs object_ =
             [ Argument.optional "cursor" filledInOptionals.cursor Encode.string ]
                 |> List.filterMap identity
     in
-    Object.selectionForCompositeField "posts" (optionalArgs ++ [ Argument.required "limit" requiredArgs.limit Encode.int ]) object_ (identity >> Decode.list)
+    Object.selectionForCompositeField "posts" (optionalArgs ++ [ Argument.required "limit" requiredArgs.limit Encode.int ]) object_ identity
 
 
 type alias PostRequiredArguments =

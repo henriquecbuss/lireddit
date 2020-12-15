@@ -13,13 +13,13 @@ import Components.Variant as Variant
 import Element exposing (..)
 import Element.Font as Font
 import Element.Region as Region
-import GraphQL exposing (GraphQLResult, postSelection, postWithSnippetSelection, query)
+import GraphQL exposing (GraphQLResult, postsWithSnippetSelection, query)
 import Graphql.Http
 import Graphql.Operation exposing (RootMutation, RootQuery)
 import Graphql.OptionalArgument as OptionalArgument
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet, with)
 import Html exposing (Html)
-import Post exposing (Post)
+import Post exposing (PaginatedPosts, Post)
 import Route
 import Session exposing (Session)
 import User exposing (User)
@@ -32,6 +32,7 @@ import User exposing (User)
 type Model
     = WithData { session : Session, posts : List Post, isLoggingOut : Bool }
     | Loading { session : Session, posts : List Post, isLoggingOut : Bool }
+    | NoMoreData { session : Session, posts : List Post, isLoggingOut : Bool }
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -46,7 +47,7 @@ init session =
 
 
 type Msg
-    = GotPosts (GraphQLResult (List Post))
+    = GotPosts (GraphQLResult PaginatedPosts)
     | RequestedLogOut
     | LoggedOut (GraphQLResult Bool)
     | RequestedPosts
@@ -67,6 +68,9 @@ view model =
                 Loading l ->
                     l.isLoggingOut
 
+                NoMoreData n ->
+                    n.isLoggingOut
+
         isLoggedIn =
             case toSession model of
                 Session.LoggedIn _ _ ->
@@ -82,6 +86,9 @@ view model =
 
                 Loading l ->
                     l.posts
+
+                NoMoreData n ->
+                    n.posts
 
         isInitialLoad =
             case model of
@@ -139,17 +146,26 @@ view model =
                                         }
                                     ]
                                  <|
-                                    button
-                                        { onClick = RequestedPosts
-                                        , variant = Variant.Teal
-                                        , state =
-                                            case model of
-                                                Loading _ ->
-                                                    Button.Loading
+                                    case model of
+                                        NoMoreData _ ->
+                                            el [ Font.color <| rgb 0.7 0.7 0.7 ] <|
+                                                text "You've reached the end"
 
-                                                WithData _ ->
-                                                    Button.Enabled "More posts"
-                                        }
+                                        _ ->
+                                            button
+                                                { onClick = RequestedPosts
+                                                , variant = Variant.Teal
+                                                , state =
+                                                    case model of
+                                                        Loading _ ->
+                                                            Button.Loading
+
+                                                        WithData _ ->
+                                                            Button.Enabled "More posts"
+
+                                                        NoMoreData _ ->
+                                                            Button.Enabled "No more data"
+                                                }
                                ]
                 ]
             )
@@ -169,8 +185,12 @@ viewPost post =
 update : Model -> Msg -> ( Model, Cmd Msg )
 update model msg =
     case ( msg, model ) of
-        ( GotPosts (Ok posts), Loading l ) ->
-            ( WithData { l | posts = l.posts ++ posts }, Cmd.none )
+        ( GotPosts (Ok paginatedPosts), Loading l ) ->
+            if paginatedPosts.hasMore then
+                ( WithData { l | posts = l.posts ++ paginatedPosts.posts }, Cmd.none )
+
+            else
+                ( NoMoreData { l | posts = l.posts ++ paginatedPosts.posts }, Cmd.none )
 
         ( GotPosts _, _ ) ->
             ( model, Cmd.none )
@@ -217,6 +237,9 @@ toSession model =
         Loading l ->
             l.session
 
+        NoMoreData n ->
+            n.session
+
 
 updateSession : Model -> Maybe User -> ( Model, Cmd Msg )
 updateSession model maybeUser =
@@ -231,6 +254,11 @@ updateSession model maybeUser =
             , Cmd.none
             )
 
+        NoMoreData n ->
+            ( NoMoreData { n | session = Session.updateSession n.session maybeUser }
+            , Cmd.none
+            )
+
 
 
 -- GRAPHQL
@@ -241,6 +269,6 @@ fetchPosts { limit, cursor } =
     query
         (Query.posts (\args -> { args | cursor = OptionalArgument.fromMaybe cursor })
             { limit = limit }
-            postWithSnippetSelection
+            postsWithSnippetSelection
         )
         GotPosts

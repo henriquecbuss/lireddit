@@ -9,6 +9,10 @@ type FieldError
     = FieldError
 
 
+type PaginatedPosts
+    = PaginatedPosts
+
+
 type Post
     = Post
 
