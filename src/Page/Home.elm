@@ -1,25 +1,34 @@
-module Page.Home exposing (..)
+module Page.Home exposing
+    ( Model(..)
+    , Msg
+    , init
+    , toSession
+    , update
+    , updateSession
+    , view
+    )
 
 import Api.Mutation as Mutation
 import Api.Object
 import Api.Object.Post as Post
 import Api.Query as Query
 import Browser
-import Components.Button as Button exposing (button)
-import Components.Card exposing (card)
+import Components.Button as Button
 import Components.LinkButton exposing (linkButton)
 import Components.Navbar exposing (navbar)
 import Components.Variant as Variant
 import Element exposing (..)
+import Element.Border as Border
 import Element.Font as Font
+import Element.Input as Input
 import Element.Region as Region
-import GraphQL exposing (GraphQLResult, postsWithSnippetSelection, query)
+import GraphQL exposing (GraphQLResult, mutation, postSelection, postsWithSnippetSelection, query)
 import Graphql.Http
 import Graphql.Operation exposing (RootMutation, RootQuery)
 import Graphql.OptionalArgument as OptionalArgument
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet, with)
 import Html exposing (Html)
-import Post exposing (PaginatedPosts, Post)
+import Post exposing (PaginatedPosts, Post, PostWithUser)
 import Route
 import Session exposing (Session)
 import User exposing (User)
@@ -30,9 +39,16 @@ import User exposing (User)
 
 
 type Model
-    = WithData { session : Session, posts : List Post, isLoggingOut : Bool }
-    | Loading { session : Session, posts : List Post, isLoggingOut : Bool }
-    | NoMoreData { session : Session, posts : List Post, isLoggingOut : Bool }
+    = WithData { session : Session, posts : List PostWithUser, isLoggingOut : Bool }
+    | Loading { session : Session, posts : List PostWithUser, isLoggingOut : Bool }
+    | NoMoreData { session : Session, posts : List PostWithUser, isLoggingOut : Bool }
+    | Voting
+        { session : Session
+        , posts : List PostWithUser
+        , votingOn : PostWithUser
+        , isLoggingOut : Bool
+        , hadData : Bool
+        }
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -51,6 +67,8 @@ type Msg
     | RequestedLogOut
     | LoggedOut (GraphQLResult Bool)
     | RequestedPosts
+    | RequestedVote PostWithUser Bool
+    | Voted (GraphQLResult Post)
 
 
 
@@ -71,6 +89,9 @@ view model =
                 NoMoreData n ->
                     n.isLoggingOut
 
+                Voting v ->
+                    v.isLoggingOut
+
         isLoggedIn =
             case toSession model of
                 Session.LoggedIn _ _ ->
@@ -89,6 +110,9 @@ view model =
 
                 NoMoreData n ->
                     n.posts
+
+                Voting v ->
+                    v.posts
 
         isInitialLoad =
             case model of
@@ -135,7 +159,7 @@ view model =
                         , centerX
                         ]
                     <|
-                        List.map viewPost posts
+                        List.map (viewPost model) posts
                             ++ [ el
                                     [ centerX
                                     , paddingEach
@@ -152,12 +176,15 @@ view model =
                                                 text "You've reached the end"
 
                                         _ ->
-                                            button
+                                            Button.button
                                                 { onClick = RequestedPosts
                                                 , variant = Variant.Teal
                                                 , state =
                                                     case model of
                                                         Loading _ ->
+                                                            Button.Loading
+
+                                                        Voting _ ->
                                                             Button.Loading
 
                                                         WithData _ ->
@@ -173,9 +200,75 @@ view model =
     }
 
 
-viewPost : Post -> Element Msg
-viewPost post =
-    card [] ( text post.title, paragraph [] [ text post.text ] )
+viewPost : Model -> PostWithUser -> Element Msg
+viewPost model post =
+    let
+        loggedIn =
+            case toSession model of
+                Session.LoggedIn _ _ ->
+                    True
+
+                _ ->
+                    False
+
+        voting =
+            case model of
+                Voting { votingOn } ->
+                    votingOn == post
+
+                _ ->
+                    False
+    in
+    row
+        [ Border.rounded 4
+        , Border.glow (rgba 0.2 0.2 0.2 0.12) 2
+        , spacing 30
+        , paddingXY 20 50
+        , width fill
+        ]
+        [ column
+            [ centerY, spacing 15 ]
+            [ if loggedIn then
+                Button.button
+                    { onClick = RequestedVote post True
+                    , variant = Variant.Green
+                    , state =
+                        if voting then
+                            Button.Loading
+
+                        else
+                            Button.Enabled "/\\"
+                    }
+
+              else
+                none
+            , el [ centerX, Font.size 16 ] <| text <| String.fromFloat post.points
+            , if loggedIn then
+                Button.button
+                    { onClick = RequestedVote post False
+                    , variant = Variant.Red
+                    , state =
+                        if voting then
+                            Button.Loading
+
+                        else
+                            Button.Enabled "\\/"
+                    }
+
+              else
+                none
+            ]
+        , column [ width fill, spacing 20 ]
+            [ column [ spacing 10, centerY, width fill ]
+                [ el [ Font.bold ] (text post.title)
+                , paragraph [ Font.color <| rgb 0.7 0.7 0.7, Font.size 18 ]
+                    [ text "posted by "
+                    , el [ Font.semiBold ] <| text post.creator.username
+                    ]
+                ]
+            , paragraph [] [ text post.text ]
+            ]
+        ]
 
 
 
@@ -217,11 +310,72 @@ update model msg =
                     ( model, Cmd.none )
 
                 Just lastPost ->
-                    ( Loading wd, fetchPosts { limit = 10, cursor = Just lastPost.createdAt } )
+                    ( Loading wd
+                    , fetchPosts
+                        { limit = 15, cursor = Just lastPost.createdAt }
+                    )
+
+        ( RequestedVote post isPositive, WithData wd ) ->
+            ( Voting
+                { session = wd.session
+                , posts = wd.posts
+                , votingOn = post
+                , isLoggingOut = wd.isLoggingOut
+                , hadData = True
+                }
+              -- TODO Change post.id to be an int
+            , vote { isPositive = isPositive, postId = round post.id }
+            )
+
+        ( RequestedVote post isPositive, NoMoreData nmd ) ->
+            ( Voting
+                { session = nmd.session
+                , posts = nmd.posts
+                , votingOn = post
+                , isLoggingOut = nmd.isLoggingOut
+                , hadData = False
+                }
+            , vote { isPositive = isPositive, postId = round post.id }
+            )
+
+        ( Voted (Ok post), Voting v ) ->
+            let
+                -- TODO - Update vote count on post in front end?
+                modelObj =
+                    { session = v.session
+                    , posts = renewPostVotes post v.posts
+                    , isLoggingOut = v.isLoggingOut
+                    }
+            in
+            if v.hadData then
+                ( WithData modelObj, Cmd.none )
+
+            else
+                ( NoMoreData modelObj, Cmd.none )
 
         -- Invalid messages
         ( RequestedPosts, _ ) ->
             ( model, Cmd.none )
+
+        ( RequestedVote _ _, _ ) ->
+            ( model, Cmd.none )
+
+        ( Voted _, _ ) ->
+            ( model, Cmd.none )
+
+
+renewPostVotes : Post -> List PostWithUser -> List PostWithUser
+renewPostVotes newPost oldPosts =
+    case List.head oldPosts of
+        Just op ->
+            if op.id == newPost.id then
+                { op | points = newPost.points } :: List.drop 1 oldPosts
+
+            else
+                op :: renewPostVotes newPost (List.drop 1 oldPosts)
+
+        Nothing ->
+            oldPosts
 
 
 
@@ -239,6 +393,9 @@ toSession model =
 
         NoMoreData n ->
             n.session
+
+        Voting v ->
+            v.session
 
 
 updateSession : Model -> Maybe User -> ( Model, Cmd Msg )
@@ -259,6 +416,11 @@ updateSession model maybeUser =
             , Cmd.none
             )
 
+        Voting v ->
+            ( Voting { v | session = Session.updateSession v.session maybeUser }
+            , Cmd.none
+            )
+
 
 
 -- GRAPHQL
@@ -272,3 +434,8 @@ fetchPosts { limit, cursor } =
             postsWithSnippetSelection
         )
         GotPosts
+
+
+vote : { isPositive : Bool, postId : Int } -> Cmd Msg
+vote args =
+    mutation (Mutation.vote args postSelection) Voted

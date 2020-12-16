@@ -12,6 +12,7 @@ type Variant
     | Green
     | Gray
     | Teal
+    | Red
 
 
 bg : Variant -> Color
@@ -22,6 +23,9 @@ bg variant =
 
         Green ->
             rgb255 0 170 128
+
+        Red ->
+            rgb255 163 0 0
 
         Gray ->
             rgb255 130 130 130

@@ -23,7 +23,7 @@ import Browser.Navigation as Nav
 import Graphql.Http exposing (Request)
 import Graphql.Operation exposing (RootMutation, RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
-import Post exposing (PaginatedPosts, Post)
+import Post exposing (PaginatedPosts, Post, PostWithUser)
 import User exposing (User)
 
 
@@ -127,23 +127,55 @@ userResultSelection =
 
 postSelection : SelectionSet Post Api.Object.Post
 postSelection =
-    SelectionSet.map4 Post ObjPost.id ObjPost.title ObjPost.text ObjPost.createdAt
+    SelectionSet.map5 Post
+        ObjPost.id
+        ObjPost.title
+        ObjPost.text
+        ObjPost.points
+        ObjPost.createdAt
 
 
 postWithSnippetSelection : SelectionSet Post Api.Object.Post
 postWithSnippetSelection =
-    SelectionSet.map4 Post ObjPost.id ObjPost.title ObjPost.textSnippet ObjPost.createdAt
+    SelectionSet.map5 Post
+        ObjPost.id
+        ObjPost.title
+        ObjPost.textSnippet
+        ObjPost.points
+        ObjPost.createdAt
+
+
+postWithUserSelection : SelectionSet PostWithUser Api.Object.Post
+postWithUserSelection =
+    SelectionSet.map6 PostWithUser
+        ObjPost.id
+        ObjPost.title
+        ObjPost.text
+        ObjPost.points
+        (ObjPost.creator userSelection)
+        ObjPost.createdAt
+
+
+postWithUserWithSnippetSelection : SelectionSet PostWithUser Api.Object.Post
+postWithUserWithSnippetSelection =
+    SelectionSet.map6 PostWithUser
+        ObjPost.id
+        ObjPost.title
+        ObjPost.textSnippet
+        ObjPost.points
+        (ObjPost.creator userSelection)
+        ObjPost.createdAt
 
 
 postsSelection : SelectionSet PaginatedPosts Api.Object.PaginatedPosts
 postsSelection =
     SelectionSet.map2 PaginatedPosts
-        (ObjPagPosts.posts postSelection)
+        (ObjPagPosts.posts postWithUserSelection)
         ObjPagPosts.hasMore
 
 
 postsWithSnippetSelection : SelectionSet PaginatedPosts Api.Object.PaginatedPosts
 postsWithSnippetSelection =
     SelectionSet.map2 PaginatedPosts
-        (ObjPagPosts.posts postWithSnippetSelection)
+        (ObjPagPosts.posts postWithUserWithSnippetSelection)
         ObjPagPosts.hasMore

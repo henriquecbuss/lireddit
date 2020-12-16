@@ -19,6 +19,20 @@ import Graphql.SelectionSet exposing (SelectionSet)
 import Json.Decode as Decode exposing (Decoder)
 
 
+type alias VoteRequiredArguments =
+    { isPositive : Bool
+    , postId : Int
+    }
+
+
+vote :
+    VoteRequiredArguments
+    -> SelectionSet decodesTo Api.Object.Post
+    -> SelectionSet decodesTo RootMutation
+vote requiredArgs object_ =
+    Object.selectionForCompositeField "vote" [ Argument.required "isPositive" requiredArgs.isPositive Encode.bool, Argument.required "postId" requiredArgs.postId Encode.int ] object_ identity
+
+
 type alias CreatePostRequiredArguments =
     { options : Api.InputObject.PostInput }
 

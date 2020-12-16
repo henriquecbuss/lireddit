@@ -44,6 +44,13 @@ creatorId =
     Object.selectionForField "Float" "creatorId" [] Decode.float
 
 
+creator :
+    SelectionSet decodesTo Api.Object.User
+    -> SelectionSet decodesTo Api.Object.Post
+creator object_ =
+    Object.selectionForCompositeField "creator" [] object_ identity
+
+
 createdAt : SelectionSet String Api.Object.Post
 createdAt =
     Object.selectionForField "String" "createdAt" [] Decode.string
