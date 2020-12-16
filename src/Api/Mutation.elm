@@ -71,14 +71,14 @@ updatePost fillInOptionals requiredArgs object_ =
 
 
 type alias DeletePostRequiredArguments =
-    { id : Float }
+    { id : Int }
 
 
 deletePost :
     DeletePostRequiredArguments
     -> SelectionSet Bool RootMutation
 deletePost requiredArgs =
-    Object.selectionForField "Bool" "deletePost" [ Argument.required "id" requiredArgs.id Encode.float ] Decode.bool
+    Object.selectionForField "Bool" "deletePost" [ Argument.required "id" requiredArgs.id Encode.int ] Decode.bool
 
 
 type alias ChangePasswordRequiredArguments =

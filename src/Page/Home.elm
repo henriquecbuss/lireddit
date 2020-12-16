@@ -50,6 +50,13 @@ type Model
         , isLoggingOut : Bool
         , hadData : Bool
         }
+    | Deleting
+        { session : Session
+        , posts : List PostWithUser
+        , deleting : PostWithUser
+        , isLoggingOut : Bool
+        , hadData : Bool
+        }
 
 
 paginationLimit : Int
@@ -79,6 +86,8 @@ type Msg
     | Voted (GraphQLResult Post)
     | RequestedLogOut
     | LoggedOut (GraphQLResult Bool)
+    | RequestedDelete PostWithUser
+    | DeletedPost (GraphQLResult Bool)
 
 
 
@@ -102,6 +111,9 @@ view model =
                 Voting v ->
                     v.posts
 
+                Deleting d ->
+                    d.posts
+
         isInitialLoad =
             case model of
                 Loading l ->
@@ -123,6 +135,9 @@ view model =
 
                 Voting v ->
                     v.isLoggingOut
+
+                Deleting d ->
+                    d.isLoggingOut
     in
     { title = "LiReddit"
     , body =
@@ -181,6 +196,9 @@ view model =
 
                                                         NoMoreData _ ->
                                                             Button.Enabled "No more data"
+
+                                                        Deleting _ ->
+                                                            Button.Loading
                                                 }
                                ]
                 ]
@@ -220,6 +238,14 @@ viewPost model post =
             case post.voteStatus of
                 Just False ->
                     True
+
+                _ ->
+                    False
+
+        isDeleting =
+            case model of
+                Deleting { deleting } ->
+                    deleting == post
 
                 _ ->
                     False
@@ -285,8 +311,8 @@ viewPost model post =
               else
                 none
             ]
-        , column [ width fill, spacing 20 ]
-            [ column [ spacing 10, centerY, width fill ]
+        , column [ width fill, spacing 20, height fill ]
+            [ column [ spacing 10, width fill ]
                 [ Route.linkToRoute [ Font.bold ]
                     { route = Route.Post post.id, label = text post.title }
                 , paragraph [ Font.color <| rgb 0.7 0.7 0.7, Font.size 18 ]
@@ -296,6 +322,31 @@ viewPost model post =
                 ]
             , paragraph [] [ text post.text ]
             ]
+        , case toSession model of
+            Session.Guest _ ->
+                none
+
+            Session.LoggedIn _ user ->
+                if user.id == post.creator.id then
+                    el [ alignRight, alignTop ] <|
+                        Button.button []
+                            { onClick =
+                                if isDeleting then
+                                    Nothing
+
+                                else
+                                    Just <| RequestedDelete post
+                            , variant = Variant.Red
+                            , state =
+                                if isDeleting then
+                                    Button.Loading
+
+                                else
+                                    Button.Enabled "Delete"
+                            }
+
+                else
+                    none
         ]
 
 
@@ -319,6 +370,9 @@ update model msg =
 
                 Voting v ->
                     Voting { v | isLoggingOut = val }
+
+                Deleting d ->
+                    Deleting { d | isLoggingOut = val }
     in
     case ( msg, model ) of
         ( GotPosts (Ok paginatedPosts), Loading l ) ->
@@ -396,6 +450,42 @@ update model msg =
                 _ ->
                     ( model, Cmd.none )
 
+        ( RequestedDelete post, WithData wd ) ->
+            ( Deleting
+                { session = wd.session
+                , posts = wd.posts
+                , deleting = post
+                , hadData = True
+                , isLoggingOut = wd.isLoggingOut
+                }
+            , deletePost post.id
+            )
+
+        ( RequestedDelete post, NoMoreData nmd ) ->
+            ( Deleting
+                { session = nmd.session
+                , posts = nmd.posts
+                , deleting = post
+                , hadData = False
+                , isLoggingOut = nmd.isLoggingOut
+                }
+            , deletePost post.id
+            )
+
+        ( DeletedPost (Ok True), Deleting d ) ->
+            let
+                modelObj =
+                    { session = d.session
+                    , posts = List.filter (\p -> p /= d.deleting) d.posts
+                    , isLoggingOut = d.isLoggingOut
+                    }
+            in
+            if d.hadData then
+                ( WithData modelObj, Cmd.none )
+
+            else
+                ( NoMoreData modelObj, Cmd.none )
+
         -- Invalid messages
         ( RequestedPosts, _ ) ->
             ( model, Cmd.none )
@@ -404,6 +494,12 @@ update model msg =
             ( model, Cmd.none )
 
         ( Voted _, _ ) ->
+            ( model, Cmd.none )
+
+        ( RequestedDelete _, _ ) ->
+            ( model, Cmd.none )
+
+        ( DeletedPost _, _ ) ->
             ( model, Cmd.none )
 
 
@@ -441,6 +537,9 @@ toSession model =
         Voting v ->
             v.session
 
+        Deleting d ->
+            d.session
+
 
 updateSession : Model -> Maybe User -> ( Model, Cmd Msg )
 updateSession model maybeUser =
@@ -465,6 +564,11 @@ updateSession model maybeUser =
             , Cmd.none
             )
 
+        Deleting d ->
+            ( Deleting { d | session = Session.updateSession d.session maybeUser }
+            , Cmd.none
+            )
+
 
 
 -- GRAPHQL
@@ -483,3 +587,8 @@ fetchPosts { limit, cursor } =
 vote : { isPositive : Bool, postId : Int } -> Cmd Msg
 vote args =
     mutation (Mutation.vote args postSelection) Voted
+
+
+deletePost : PostId.PostId -> Cmd Msg
+deletePost postId =
+    mutation (Mutation.deletePost { id = PostId.getId postId }) DeletedPost
