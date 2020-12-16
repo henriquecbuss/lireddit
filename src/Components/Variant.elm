@@ -25,7 +25,7 @@ bg variant =
             rgb255 0 170 128
 
         Red ->
-            rgb255 163 0 0
+            rgb255 183 48 48
 
         Gray ->
             rgb255 130 130 130

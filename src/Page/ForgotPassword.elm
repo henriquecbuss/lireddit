@@ -105,7 +105,7 @@ view model =
                                 , label = text "Go to Home"
                                 }
                             , Button.button
-                                { onClick = Submitted
+                                { onClick = Just Submitted
                                 , variant = Variant.Teal
                                 , state =
                                     case model of

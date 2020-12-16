@@ -51,10 +51,15 @@ type Model
         }
 
 
+paginationLimit : Int
+paginationLimit =
+    5
+
+
 init : Session -> ( Model, Cmd Msg )
 init session =
     ( Loading { session = session, posts = [], isLoggingOut = False }
-    , fetchPosts { limit = 10, cursor = Nothing }
+    , fetchPosts { limit = paginationLimit, cursor = Nothing }
     )
 
 
@@ -127,7 +132,7 @@ view model =
         [ layout []
             (column [ spacing 40, width fill ]
                 [ navbar (toSession model)
-                    RequestedLogOut
+                    (Just RequestedLogOut)
                     { isLoggingOut = isLoggingOut }
                 , row
                     [ width <| maximum 1000 fill, centerX, spaceEvenly ]
@@ -177,7 +182,7 @@ view model =
 
                                         _ ->
                                             Button.button
-                                                { onClick = RequestedPosts
+                                                { onClick = Just RequestedPosts
                                                 , variant = Variant.Teal
                                                 , state =
                                                     case model of
@@ -218,6 +223,22 @@ viewPost model post =
 
                 _ ->
                     False
+
+        votedPositive =
+            case post.voteStatus of
+                Just True ->
+                    True
+
+                _ ->
+                    False
+
+        votedNegative =
+            case post.voteStatus of
+                Just False ->
+                    True
+
+                _ ->
+                    False
     in
     row
         [ Border.rounded 4
@@ -230,8 +251,18 @@ viewPost model post =
             [ centerY, spacing 15 ]
             [ if loggedIn then
                 Button.button
-                    { onClick = RequestedVote post True
-                    , variant = Variant.Green
+                    { onClick =
+                        if votedPositive then
+                            Nothing
+
+                        else
+                            Just <| RequestedVote post True
+                    , variant =
+                        if votedPositive then
+                            Variant.Green
+
+                        else
+                            Variant.Gray
                     , state =
                         if voting then
                             Button.Loading
@@ -245,8 +276,18 @@ viewPost model post =
             , el [ centerX, Font.size 16 ] <| text <| String.fromFloat post.points
             , if loggedIn then
                 Button.button
-                    { onClick = RequestedVote post False
-                    , variant = Variant.Red
+                    { onClick =
+                        if votedNegative then
+                            Nothing
+
+                        else
+                            Just <| RequestedVote post False
+                    , variant =
+                        if votedNegative then
+                            Variant.Red
+
+                        else
+                            Variant.Gray
                     , state =
                         if voting then
                             Button.Loading
@@ -280,7 +321,14 @@ update model msg =
     case ( msg, model ) of
         ( GotPosts (Ok paginatedPosts), Loading l ) ->
             if paginatedPosts.hasMore then
-                ( WithData { l | posts = l.posts ++ paginatedPosts.posts }, Cmd.none )
+                ( WithData
+                    { l
+                        | posts =
+                            (l.posts |> Debug.log "PREV POSTS")
+                                ++ (paginatedPosts.posts |> Debug.log "NEWPOSTS")
+                    }
+                , Cmd.none
+                )
 
             else
                 ( NoMoreData { l | posts = l.posts ++ paginatedPosts.posts }, Cmd.none )
@@ -302,7 +350,7 @@ update model msg =
         ( RequestedPosts, WithData wd ) ->
             let
                 maybeLastPost =
-                    List.drop (List.length wd.posts - 2) wd.posts
+                    List.drop (List.length wd.posts - 1) wd.posts
                         |> List.head
             in
             case maybeLastPost of
@@ -312,7 +360,7 @@ update model msg =
                 Just lastPost ->
                     ( Loading wd
                     , fetchPosts
-                        { limit = 15, cursor = Just lastPost.createdAt }
+                        { limit = paginationLimit, cursor = Just lastPost.createdAt }
                     )
 
         ( RequestedVote post isPositive, WithData wd ) ->
@@ -369,7 +417,8 @@ renewPostVotes newPost oldPosts =
     case List.head oldPosts of
         Just op ->
             if op.id == newPost.id then
-                { op | points = newPost.points } :: List.drop 1 oldPosts
+                { op | points = newPost.points, voteStatus = newPost.voteStatus }
+                    :: List.drop 1 oldPosts
 
             else
                 op :: renewPostVotes newPost (List.drop 1 oldPosts)

@@ -11,7 +11,7 @@ import Route exposing (linkToRoute)
 import Session exposing (Session(..))
 
 
-navbar : Session -> msg -> { isLoggingOut : Bool } -> Element msg
+navbar : Session -> Maybe msg -> { isLoggingOut : Bool } -> Element msg
 navbar session loggedOut { isLoggingOut } =
     let
         linkStyles =

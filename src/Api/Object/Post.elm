@@ -39,6 +39,11 @@ points =
     Object.selectionForField "Float" "points" [] Decode.float
 
 
+voteStatus : SelectionSet (Maybe Bool) Api.Object.Post
+voteStatus =
+    Object.selectionForField "(Maybe Bool)" "voteStatus" [] (Decode.bool |> Decode.nullable)
+
+
 creatorId : SelectionSet Float Api.Object.Post
 creatorId =
     Object.selectionForField "Float" "creatorId" [] Decode.float

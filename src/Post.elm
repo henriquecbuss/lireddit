@@ -8,6 +8,7 @@ type alias Post =
     , title : String
     , text : String
     , points : Float
+    , voteStatus : Maybe Bool
     , createdAt : String
     }
 
@@ -17,6 +18,7 @@ type alias PostWithUser =
     , title : String
     , text : String
     , points : Float
+    , voteStatus : Maybe Bool
     , creator : User
     , createdAt : String
     }

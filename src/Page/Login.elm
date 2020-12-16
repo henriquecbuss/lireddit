@@ -150,7 +150,7 @@ view model =
                         , label = text "Forgot Password"
                         }
                     , Button.button
-                        { onClick = Submitted
+                        { onClick = Just Submitted
                         , variant = Variant.Green
                         , state =
                             if loading then

@@ -127,42 +127,46 @@ userResultSelection =
 
 postSelection : SelectionSet Post Api.Object.Post
 postSelection =
-    SelectionSet.map5 Post
+    SelectionSet.map6 Post
         ObjPost.id
         ObjPost.title
         ObjPost.text
         ObjPost.points
+        ObjPost.voteStatus
         ObjPost.createdAt
 
 
 postWithSnippetSelection : SelectionSet Post Api.Object.Post
 postWithSnippetSelection =
-    SelectionSet.map5 Post
+    SelectionSet.map6 Post
         ObjPost.id
         ObjPost.title
         ObjPost.textSnippet
         ObjPost.points
+        ObjPost.voteStatus
         ObjPost.createdAt
 
 
 postWithUserSelection : SelectionSet PostWithUser Api.Object.Post
 postWithUserSelection =
-    SelectionSet.map6 PostWithUser
+    SelectionSet.map7 PostWithUser
         ObjPost.id
         ObjPost.title
         ObjPost.text
         ObjPost.points
+        ObjPost.voteStatus
         (ObjPost.creator userSelection)
         ObjPost.createdAt
 
 
 postWithUserWithSnippetSelection : SelectionSet PostWithUser Api.Object.Post
 postWithUserWithSnippetSelection =
-    SelectionSet.map6 PostWithUser
+    SelectionSet.map7 PostWithUser
         ObjPost.id
         ObjPost.title
         ObjPost.textSnippet
         ObjPost.points
+        ObjPost.voteStatus
         (ObjPost.creator userSelection)
         ObjPost.createdAt
 

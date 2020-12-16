@@ -52,7 +52,7 @@ buttonLabel state =
 
 
 button :
-    { onClick : msg, variant : Variant, state : State }
+    { onClick : Maybe msg, variant : Variant, state : State }
     -> Element msg
 button { onClick, variant, state } =
     Input.button
@@ -69,6 +69,6 @@ button { onClick, variant, state } =
                     Nothing
 
                 Enabled _ ->
-                    Just onClick
+                    onClick
         , label = el [ centerX, centerY ] (buttonLabel state)
         }
