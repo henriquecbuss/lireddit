@@ -180,11 +180,13 @@ view model =
                                            ]
                             , row [ width fill, spaceEvenly ]
                                 [ linkButton
+                                    []
                                     { route = Route.Home
                                     , variant = Variant.Gray
                                     , label = text "Go to Home"
                                     }
                                 , Button.button
+                                    []
                                     { onClick = Just Submitted
                                     , variant = Variant.Teal
                                     , state = buttonState

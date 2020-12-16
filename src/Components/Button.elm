@@ -52,17 +52,20 @@ buttonLabel state =
 
 
 button :
-    { onClick : Maybe msg, variant : Variant, state : State }
+    List (Attribute msg)
+    -> { onClick : Maybe msg, variant : Variant, state : State }
     -> Element msg
-button { onClick, variant, state } =
+button attributes { onClick, variant, state } =
     Input.button
-        [ Background.color <| buttonBg variant state
-        , Font.color <| buttonFg variant state
-        , Border.rounded 4
-        , Border.color <| border variant
-        , Border.width <| borderWidth variant
-        , paddingXY 30 15
-        ]
+        ([ Background.color <| buttonBg variant state
+         , Font.color <| buttonFg variant state
+         , Border.rounded 4
+         , Border.color <| border variant
+         , Border.width <| borderWidth variant
+         , paddingXY 30 15
+         ]
+            ++ attributes
+        )
         { onPress =
             case state of
                 Loading ->

@@ -59,7 +59,11 @@ paginationLimit =
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    ( Loading { session = session, posts = [], isLoggingOut = False }
+    ( Loading
+        { session = session
+        , posts = []
+        , isLoggingOut = False
+        }
     , fetchPosts { limit = paginationLimit, cursor = Nothing }
     )
 
@@ -70,11 +74,11 @@ init session =
 
 type Msg
     = GotPosts (GraphQLResult PaginatedPosts)
-    | RequestedLogOut
-    | LoggedOut (GraphQLResult Bool)
     | RequestedPosts
     | RequestedVote PostWithUser Bool
     | Voted (GraphQLResult Post)
+    | RequestedLogOut
+    | LoggedOut (GraphQLResult Bool)
 
 
 
@@ -84,28 +88,6 @@ type Msg
 view : Model -> Browser.Document Msg
 view model =
     let
-        isLoggingOut =
-            case model of
-                WithData wd ->
-                    wd.isLoggingOut
-
-                Loading l ->
-                    l.isLoggingOut
-
-                NoMoreData n ->
-                    n.isLoggingOut
-
-                Voting v ->
-                    v.isLoggingOut
-
-        isLoggedIn =
-            case toSession model of
-                Session.LoggedIn _ _ ->
-                    True
-
-                Session.Guest _ ->
-                    False
-
         posts =
             case model of
                 WithData wd ->
@@ -127,33 +109,33 @@ view model =
 
                 _ ->
                     False
+
+        isLoggingOut =
+            case model of
+                WithData wd ->
+                    wd.isLoggingOut
+
+                Loading l ->
+                    l.isLoggingOut
+
+                NoMoreData nmd ->
+                    nmd.isLoggingOut
+
+                Voting v ->
+                    v.isLoggingOut
     in
     { title = "LiReddit"
     , body =
         [ layout []
             (column [ spacing 40, width fill ]
                 [ navbar (toSession model)
-                    (Just RequestedLogOut)
-                    { isLoggingOut = isLoggingOut }
-                , row
-                    [ width <| maximum 1000 fill, centerX, spaceEvenly ]
-                    [ el
-                        [ Region.heading 1
-                        , Font.bold
-                        , Font.color <| rgb255 0 128 128
-                        , Font.size 48
-                        ]
-                        (text "LiReddit")
-                    , if isLoggedIn then
-                        linkButton
-                            { route = Route.CreatePost
-                            , variant = Variant.Teal
-                            , label = text "Create Post"
-                            }
+                    (if isLoggingOut then
+                        Nothing
 
-                      else
-                        none
-                    ]
+                     else
+                        Just RequestedLogOut
+                    )
+                    isLoggingOut
                 , if isInitialLoad then
                     text "Loading"
 
@@ -183,6 +165,7 @@ view model =
 
                                         _ ->
                                             Button.button
+                                                []
                                                 { onClick = Just RequestedPosts
                                                 , variant = Variant.Teal
                                                 , state =
@@ -252,6 +235,7 @@ viewPost model post =
             [ centerY, spacing 15 ]
             [ if loggedIn then
                 Button.button
+                    []
                     { onClick =
                         if votedPositive then
                             Nothing
@@ -277,6 +261,7 @@ viewPost model post =
             , el [ centerX, Font.size 16 ] <| text <| String.fromFloat post.points
             , if loggedIn then
                 Button.button
+                    []
                     { onClick =
                         if votedNegative then
                             Nothing
@@ -348,17 +333,6 @@ update model msg =
         ( GotPosts _, _ ) ->
             ( model, Cmd.none )
 
-        ( RequestedLogOut, _ ) ->
-            ( setLoggingOut model True, GraphQL.mutation Mutation.logout LoggedOut )
-
-        ( LoggedOut result, _ ) ->
-            case result of
-                Ok True ->
-                    updateSession (setLoggingOut model False) Nothing
-
-                _ ->
-                    ( model, Cmd.none )
-
         ( RequestedPosts, WithData wd ) ->
             let
                 maybeLastPost =
@@ -380,10 +354,9 @@ update model msg =
                 { session = wd.session
                 , posts = wd.posts
                 , votingOn = post
-                , isLoggingOut = wd.isLoggingOut
                 , hadData = True
+                , isLoggingOut = wd.isLoggingOut
                 }
-              -- TODO Change post.id to be an int
             , vote { isPositive = isPositive, postId = PostId.getId post.id }
             )
 
@@ -392,15 +365,14 @@ update model msg =
                 { session = nmd.session
                 , posts = nmd.posts
                 , votingOn = post
-                , isLoggingOut = nmd.isLoggingOut
                 , hadData = False
+                , isLoggingOut = nmd.isLoggingOut
                 }
             , vote { isPositive = isPositive, postId = PostId.getId post.id }
             )
 
         ( Voted (Ok post), Voting v ) ->
             let
-                -- TODO - Update vote count on post in front end?
                 modelObj =
                     { session = v.session
                     , posts = renewPostVotes post v.posts
@@ -412,6 +384,17 @@ update model msg =
 
             else
                 ( NoMoreData modelObj, Cmd.none )
+
+        ( RequestedLogOut, _ ) ->
+            ( setLoggingOut model True, GraphQL.mutation Mutation.logout LoggedOut )
+
+        ( LoggedOut result, _ ) ->
+            case result of
+                Ok True ->
+                    updateSession (setLoggingOut model False) Nothing
+
+                _ ->
+                    ( model, Cmd.none )
 
         -- Invalid messages
         ( RequestedPosts, _ ) ->

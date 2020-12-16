@@ -140,16 +140,19 @@ view model =
                     (List.filter Error.isPasswordError errors)
                 , row [ width fill, spaceEvenly ]
                     [ linkButton
+                        []
                         { route = Route.Home
                         , variant = Variant.Gray
                         , label = text "Go to Home"
                         }
                     , linkButton
+                        []
                         { route = Route.ForgotPassword
                         , variant = Variant.Teal
                         , label = text "Forgot Password"
                         }
                     , Button.button
+                        []
                         { onClick = Just Submitted
                         , variant = Variant.Green
                         , state =

@@ -125,18 +125,18 @@ view model =
                             column [ width fill, centerY, moveUp 100, spacing 80 ]
                                 [ el [ centerX ] <| text "You need to log in to create a post"
                                 , row [ width fill, spacing 80 ]
-                                    [ el [ centerX ] <|
-                                        linkButton
-                                            { route = Route.Register
-                                            , variant = Variant.Teal
-                                            , label = text "Register"
-                                            }
-                                    , el [ centerX ] <|
-                                        linkButton
-                                            { route = Route.Login
-                                            , variant = Variant.Green
-                                            , label = text "Log In"
-                                            }
+                                    [ linkButton
+                                        [ centerX ]
+                                        { route = Route.Register
+                                        , variant = Variant.Teal
+                                        , label = text "Register"
+                                        }
+                                    , linkButton
+                                        [ centerX ]
+                                        { route = Route.Login
+                                        , variant = Variant.Green
+                                        , label = text "Log In"
+                                        }
                                     ]
                                 ]
 
@@ -163,11 +163,13 @@ view model =
                                     }
                                 , row [ width fill, spaceEvenly ]
                                     [ linkButton
+                                        []
                                         { route = Route.Home
                                         , variant = Variant.Gray
                                         , label = text "Go to Home"
                                         }
                                     , Button.button
+                                        []
                                         { onClick = Just Submitted
                                         , variant = Variant.Green
                                         , state = Button.Enabled "Create Post"

@@ -8,6 +8,7 @@ import Element exposing (..)
 import Element.Font as Font
 import GraphQL exposing (GraphQLResult, postWithUserSelection, query)
 import Graphql.Http
+import Html
 import Post exposing (PostWithUser)
 import Post.PostId as PostId exposing (PostId)
 import Session exposing (Session)
@@ -38,7 +39,11 @@ type Model
 
 init : Session -> PostId -> ( Model, Cmd Msg )
 init session postId =
-    ( Loading { session = session, postId = postId, isLoggingOut = False }
+    ( Loading
+        { session = session
+        , postId = postId
+        , isLoggingOut = False
+        }
     , fetchPost postId
     )
 
@@ -131,16 +136,22 @@ view model =
                 Errored e ->
                     e.isLoggingOut
 
-        nav =
-            navbar (toSession model) (Just RequestedLogOut) { isLoggingOut = isLoggingOut }
-
         baseCol =
             column [ width <| maximum 800 fill, centerX, spacing 50 ]
 
         postView children =
             [ layout [] <|
                 column [ width fill, spacing 100 ] <|
-                    [ nav, baseCol children ]
+                    [ navbar (toSession model)
+                        (if isLoggingOut then
+                            Nothing
+
+                         else
+                            Just RequestedLogOut
+                        )
+                        isLoggingOut
+                    , baseCol children
+                    ]
             ]
     in
     case model of
