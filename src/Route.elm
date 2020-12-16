@@ -2,6 +2,7 @@ module Route exposing (Route(..), fromUrl, linkToRoute, previousPage, replaceUrl
 
 import Browser.Navigation as Nav
 import Element exposing (..)
+import Post.PostId as PostId exposing (PostId)
 import Token as Token exposing (Token)
 import Url exposing (Url)
 import Url.Parser as Parser exposing ((</>), Parser, oneOf, s)
@@ -18,6 +19,7 @@ type Route
     | ForgotPassword
     | ChangePassword Token
     | CreatePost
+    | Post PostId
 
 
 parser : Parser (Route -> a) a
@@ -29,6 +31,7 @@ parser =
         , Parser.map ChangePassword (s "change-password" </> Token.urlParser)
         , Parser.map ForgotPassword (s "change-password")
         , Parser.map CreatePost (s "create-post")
+        , Parser.map Post (s "post" </> PostId.urlParser)
         ]
 
 
@@ -88,3 +91,6 @@ routeToPieces page =
 
         CreatePost ->
             [ "create-post" ]
+
+        Post postId ->
+            [ "post", PostId.toString postId ]

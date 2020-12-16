@@ -12,6 +12,7 @@ import Page.ForgotPassword as ForgotPassword
 import Page.Home as Home
 import Page.Login as Login
 import Page.NotFound as NotFound
+import Page.Post as Post
 import Page.Register as Register
 import Route exposing (Route)
 import Session exposing (Session(..))
@@ -30,6 +31,7 @@ type Model
     | ChangePassword ChangePassword.Model
     | ForgotPassword ForgotPassword.Model
     | CreatePost CreatePost.Model
+    | Post Post.Model
     | NotFound Session
     | Redirect Session
 
@@ -50,6 +52,7 @@ type Msg
     | GotChangePasswordMsg ChangePassword.Msg
     | GotForgotPasswordMsg ForgotPassword.Msg
     | GotCreatePostMsg CreatePost.Msg
+    | GotPostMsg Post.Msg
     | ChangedUrl Url.Url
     | RequestedUrl Browser.UrlRequest
     | GotSession (GraphQLResult (Maybe User))
@@ -106,6 +109,9 @@ view model =
         CreatePost createPost ->
             viewPage (CreatePost.view createPost) GotCreatePostMsg
 
+        Post post ->
+            viewPage (Post.view post) GotPostMsg
+
         NotFound _ ->
             NotFound.view
 
@@ -155,6 +161,10 @@ update msg model =
             CreatePost.update createPost createPostMsg
                 |> updateWith CreatePost GotCreatePostMsg model
 
+        ( GotPostMsg postMsg, Post post ) ->
+            Post.update post postMsg
+                |> updateWith Post GotPostMsg model
+
         ( GotSession result, _ ) ->
             case result of
                 Ok user ->
@@ -180,6 +190,9 @@ update msg model =
             ( model, Cmd.none )
 
         ( GotCreatePostMsg _, _ ) ->
+            ( model, Cmd.none )
+
+        ( GotPostMsg _, _ ) ->
             ( model, Cmd.none )
 
 
@@ -247,6 +260,10 @@ changeRouteTo maybeRoute model =
             CreatePost.init session
                 |> updateWithSession CreatePost GotCreatePostMsg model
 
+        Just (Route.Post postId) ->
+            Post.init session postId
+                |> updateWithSession Post GotPostMsg model
+
 
 toSession : Model -> Session
 toSession page =
@@ -274,6 +291,9 @@ toSession page =
 
         CreatePost createPost ->
             CreatePost.toSession createPost
+
+        Post post ->
+            Post.toSession post
 
 
 updateSession : Model -> Maybe User -> ( Model, Cmd Msg )
@@ -306,6 +326,10 @@ updateSession page maybeUser =
         CreatePost createPost ->
             CreatePost.updateSession createPost maybeUser
                 |> updateWith CreatePost GotCreatePostMsg page
+
+        Post post ->
+            Post.updateSession post maybeUser
+                |> updateWith Post GotPostMsg page
 
 
 

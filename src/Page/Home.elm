@@ -29,6 +29,7 @@ import Graphql.OptionalArgument as OptionalArgument
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet, with)
 import Html exposing (Html)
 import Post exposing (PaginatedPosts, Post, PostWithUser)
+import Post.PostId as PostId
 import Route
 import Session exposing (Session)
 import User exposing (User)
@@ -127,7 +128,7 @@ view model =
                 _ ->
                     False
     in
-    { title = "Home"
+    { title = "LiReddit"
     , body =
         [ layout []
             (column [ spacing 40, width fill ]
@@ -301,7 +302,8 @@ viewPost model post =
             ]
         , column [ width fill, spacing 20 ]
             [ column [ spacing 10, centerY, width fill ]
-                [ el [ Font.bold ] (text post.title)
+                [ Route.linkToRoute [ Font.bold ]
+                    { route = Route.Post post.id, label = text post.title }
                 , paragraph [ Font.color <| rgb 0.7 0.7 0.7, Font.size 18 ]
                     [ text "posted by "
                     , el [ Font.semiBold ] <| text post.creator.username
@@ -318,15 +320,25 @@ viewPost model post =
 
 update : Model -> Msg -> ( Model, Cmd Msg )
 update model msg =
+    let
+        setLoggingOut m val =
+            case m of
+                WithData wd ->
+                    WithData { wd | isLoggingOut = val }
+
+                Loading l ->
+                    Loading { l | isLoggingOut = val }
+
+                NoMoreData nmd ->
+                    NoMoreData { nmd | isLoggingOut = val }
+
+                Voting v ->
+                    Voting { v | isLoggingOut = val }
+    in
     case ( msg, model ) of
         ( GotPosts (Ok paginatedPosts), Loading l ) ->
             if paginatedPosts.hasMore then
-                ( WithData
-                    { l
-                        | posts =
-                            (l.posts |> Debug.log "PREV POSTS")
-                                ++ (paginatedPosts.posts |> Debug.log "NEWPOSTS")
-                    }
+                ( WithData { l | posts = l.posts ++ paginatedPosts.posts }
                 , Cmd.none
                 )
 
@@ -337,12 +349,12 @@ update model msg =
             ( model, Cmd.none )
 
         ( RequestedLogOut, _ ) ->
-            ( model, GraphQL.mutation Mutation.logout LoggedOut )
+            ( setLoggingOut model True, GraphQL.mutation Mutation.logout LoggedOut )
 
         ( LoggedOut result, _ ) ->
             case result of
                 Ok True ->
-                    updateSession model Nothing
+                    updateSession (setLoggingOut model False) Nothing
 
                 _ ->
                     ( model, Cmd.none )
@@ -372,7 +384,7 @@ update model msg =
                 , hadData = True
                 }
               -- TODO Change post.id to be an int
-            , vote { isPositive = isPositive, postId = round post.id }
+            , vote { isPositive = isPositive, postId = PostId.getId post.id }
             )
 
         ( RequestedVote post isPositive, NoMoreData nmd ) ->
@@ -383,7 +395,7 @@ update model msg =
                 , isLoggingOut = nmd.isLoggingOut
                 , hadData = False
                 }
-            , vote { isPositive = isPositive, postId = round post.id }
+            , vote { isPositive = isPositive, postId = PostId.getId post.id }
             )
 
         ( Voted (Ok post), Voting v ) ->

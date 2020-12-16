@@ -1,10 +1,11 @@
 module Post exposing (..)
 
+import Post.PostId exposing (PostId)
 import User exposing (User)
 
 
 type alias Post =
-    { id : Float
+    { id : PostId
     , title : String
     , text : String
     , points : Float
@@ -14,7 +15,7 @@ type alias Post =
 
 
 type alias PostWithUser =
-    { id : Float
+    { id : PostId
     , title : String
     , text : String
     , points : Float

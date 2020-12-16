@@ -5,6 +5,8 @@ module GraphQL exposing
     , mutation
     , postSelection
     , postWithSnippetSelection
+    , postWithUserSelection
+    , postWithUserWithSnippetSelection
     , postsSelection
     , postsWithSnippetSelection
     , query
@@ -24,6 +26,7 @@ import Graphql.Http exposing (Request)
 import Graphql.Operation exposing (RootMutation, RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
 import Post exposing (PaginatedPosts, Post, PostWithUser)
+import Post.PostId exposing (PostId(..))
 import User exposing (User)
 
 
@@ -128,7 +131,7 @@ userResultSelection =
 postSelection : SelectionSet Post Api.Object.Post
 postSelection =
     SelectionSet.map6 Post
-        ObjPost.id
+        (SelectionSet.map PostId ObjPost.id)
         ObjPost.title
         ObjPost.text
         ObjPost.points
@@ -139,7 +142,7 @@ postSelection =
 postWithSnippetSelection : SelectionSet Post Api.Object.Post
 postWithSnippetSelection =
     SelectionSet.map6 Post
-        ObjPost.id
+        (SelectionSet.map PostId ObjPost.id)
         ObjPost.title
         ObjPost.textSnippet
         ObjPost.points
@@ -150,7 +153,7 @@ postWithSnippetSelection =
 postWithUserSelection : SelectionSet PostWithUser Api.Object.Post
 postWithUserSelection =
     SelectionSet.map7 PostWithUser
-        ObjPost.id
+        (SelectionSet.map PostId ObjPost.id)
         ObjPost.title
         ObjPost.text
         ObjPost.points
@@ -162,7 +165,7 @@ postWithUserSelection =
 postWithUserWithSnippetSelection : SelectionSet PostWithUser Api.Object.Post
 postWithUserWithSnippetSelection =
     SelectionSet.map7 PostWithUser
-        ObjPost.id
+        (SelectionSet.map PostId ObjPost.id)
         ObjPost.title
         ObjPost.textSnippet
         ObjPost.points

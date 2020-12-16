@@ -45,7 +45,7 @@ posts fillInOptionals requiredArgs object_ =
 
 
 type alias PostRequiredArguments =
-    { id : Float }
+    { id : Int }
 
 
 post :
@@ -53,7 +53,7 @@ post :
     -> SelectionSet decodesTo Api.Object.Post
     -> SelectionSet (Maybe decodesTo) RootQuery
 post requiredArgs object_ =
-    Object.selectionForCompositeField "post" [ Argument.required "id" requiredArgs.id Encode.float ] object_ (identity >> Decode.nullable)
+    Object.selectionForCompositeField "post" [ Argument.required "id" requiredArgs.id Encode.int ] object_ (identity >> Decode.nullable)
 
 
 me :

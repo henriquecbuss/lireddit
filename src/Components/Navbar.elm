@@ -11,6 +11,9 @@ import Route exposing (linkToRoute)
 import Session exposing (Session(..))
 
 
+{-| A navbar that receives a Session, a Message to be fired when the user logged out,
+and an indication to know if the user is logging out
+-}
 navbar : Session -> Maybe msg -> { isLoggingOut : Bool } -> Element msg
 navbar session loggedOut { isLoggingOut } =
     let
@@ -19,7 +22,9 @@ navbar session loggedOut { isLoggingOut } =
     in
     (case session of
         LoggedIn _ user ->
-            [ el [ alignRight ] <| text user.username
+            [ linkToRoute (Font.size 32 :: linkStyles)
+                { route = Route.Home, label = text "LiReddit" }
+            , el [ alignRight ] <| text user.username
             , Button.button
                 { onClick = loggedOut
                 , variant = Variant.Transparent
@@ -33,7 +38,9 @@ navbar session loggedOut { isLoggingOut } =
             ]
 
         Guest _ ->
-            [ linkToRoute (linkStyles ++ [ alignRight ])
+            [ linkToRoute (Font.size 32 :: linkStyles)
+                { route = Route.Home, label = text "LiReddit" }
+            , linkToRoute (alignRight :: linkStyles)
                 { route = Route.Login, label = text "Log In" }
             , linkToRoute linkStyles { route = Route.Register, label = text "Register" }
             ]

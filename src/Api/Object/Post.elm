@@ -19,9 +19,9 @@ import Graphql.SelectionSet exposing (SelectionSet)
 import Json.Decode as Decode
 
 
-id : SelectionSet Float Api.Object.Post
+id : SelectionSet Int Api.Object.Post
 id =
-    Object.selectionForField "Float" "id" [] Decode.float
+    Object.selectionForField "Int" "id" [] Decode.int
 
 
 title : SelectionSet String Api.Object.Post
