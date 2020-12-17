@@ -34,6 +34,16 @@ bg variant =
             rgb255 0 128 128
 
 
+hoverBg : Variant -> Color
+hoverBg variant =
+    case variant of
+        Transparent ->
+            setAlpha 0.2 <| bg variant
+
+        _ ->
+            setAlpha 0.8 <| bg variant
+
+
 fg : Variant -> Color
 fg variant =
     case variant of

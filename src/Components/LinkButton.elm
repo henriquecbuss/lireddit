@@ -17,6 +17,7 @@ linkButton attributes { route, variant, label } =
          , Border.rounded 4
          , Border.width <| Variant.borderWidth variant
          , Border.color <| Variant.border variant
+         , mouseOver [ Background.color <| Variant.hoverBg variant ]
          ]
             ++ attributes
         )

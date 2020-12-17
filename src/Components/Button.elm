@@ -63,6 +63,13 @@ button attributes { onClick, variant, state } =
          , Border.color <| border variant
          , Border.width <| borderWidth variant
          , paddingXY 30 15
+         , mouseOver <|
+            case state of
+                Loading ->
+                    []
+
+                Enabled _ ->
+                    [ Background.color <| hoverBg variant ]
          ]
             ++ attributes
         )
