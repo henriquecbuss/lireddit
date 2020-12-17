@@ -1,15 +1,18 @@
 module Page.Post exposing (..)
 
 import Api.Mutation as Mutation
-import Api.Query as Query
 import Browser
+import Components.Button as Button
+import Components.LinkButton exposing (linkButton)
+import Components.Variant as Variant
 import Element exposing (..)
 import Element.Font as Font
-import GraphQL exposing (GraphQLResult, postWithUserSelection, query)
+import GraphQL exposing (GraphQLResult, mutation, postWithUserSelection, query)
 import Graphql.Http
-import Html
+import Html exposing (Html)
 import Post exposing (PostWithUser)
 import Post.PostId as PostId exposing (PostId)
+import Route
 import Session exposing (Session)
 import User exposing (User)
 
@@ -27,6 +30,7 @@ type Model
         { session : Session
         , post : PostWithUser
         }
+    | Deleting { session : Session, post : PostWithUser }
     | Errored
         { session : Session
         , message : String
@@ -49,6 +53,8 @@ init session postId =
 
 type Msg
     = GotPost (GraphQLResult (Maybe PostWithUser))
+    | RequestedDelete
+    | DeletedPost (GraphQLResult Bool)
 
 
 update : Model -> Msg -> ( Model, Cmd Msg )
@@ -80,8 +86,25 @@ update model msg =
             , Cmd.none
             )
 
+        ( RequestedDelete, WithPost wp ) ->
+            ( Deleting wp, deletePost wp.post.id )
+
+        ( DeletedPost (Ok True), _ ) ->
+            ( model, Route.previousPage (Session.navKey <| toSession model) )
+
+        ( DeletedPost (Ok False), _ ) ->
+            ( Errored { session = toSession model, message = "There was an error deleting the post" }
+            , Cmd.none
+            )
+
         -- Invalid messages
         ( GotPost _, _ ) ->
+            ( model, Cmd.none )
+
+        ( RequestedDelete, _ ) ->
+            ( model, Cmd.none )
+
+        ( DeletedPost _, _ ) ->
             ( model, Cmd.none )
 
 
@@ -91,38 +114,84 @@ update model msg =
 
 view : Model -> Browser.Document Msg
 view model =
-    let
-        postView children =
-            [ layout [] <|
-                column [ width <| maximum 800 fill, centerX, spacing 50 ]
-                    children
-            ]
-    in
     case model of
         Loading _ ->
             { title = "Loading post"
-            , body = postView [ text "Loading" ]
+            , body = defaultView [ text "Loading" ]
             }
 
-        WithPost { post } ->
-            { title = post.title
-            , body =
-                postView
-                    [ column [ spacing 10, centerX, centerY, width <| maximum 800 fill ]
-                        [ el [ Font.bold ] <| text post.title
-                        , paragraph [ Font.color <| rgb 0.7 0.7 0.7, Font.size 18 ]
-                            [ text "written by "
-                            , el [ Font.bold ] <| text post.creator.username
-                            ]
-                        ]
-                    , paragraph [] [ text post.text ]
-                    ]
-            }
+        WithPost { session, post } ->
+            viewPost session post False
+
+        Deleting { session, post } ->
+            viewPost session post True
 
         Errored e ->
             { title = "Error"
-            , body = postView [ text e.message ]
+            , body = defaultView [ text e.message ]
             }
+
+
+defaultView : List (Element Msg) -> List (Html Msg)
+defaultView children =
+    [ layout [] <|
+        column [ width <| maximum 1000 fill, centerX, spacing 50 ]
+            children
+    ]
+
+
+viewPost : Session -> PostWithUser -> Bool -> Browser.Document Msg
+viewPost session post isDeleting =
+    let
+        isOwner =
+            case session of
+                Session.LoggedIn _ user ->
+                    user.id == post.creator.id
+
+                _ ->
+                    False
+    in
+    { title = post.title
+    , body =
+        defaultView
+            [ row [ width fill ]
+                [ column [ spacing 10, centerY, width fill ]
+                    [ el [ Font.bold, Font.size 36 ] <| text post.title
+                    , paragraph [ Font.color <| rgb 0.7 0.7 0.7, Font.size 18 ]
+                        [ text "written by "
+                        , el [ Font.bold ] <| text post.creator.username
+                        ]
+                    ]
+                , if isOwner then
+                    column [ spacing 20 ]
+                        [ linkButton [ width fill ]
+                            { route = Route.EditPost post.id
+                            , variant = Variant.Gray
+                            , label = el [ centerX ] <| text "Edit Post"
+                            }
+                        , Button.button [ width fill ]
+                            { onClick =
+                                if isDeleting then
+                                    Nothing
+
+                                else
+                                    Just RequestedDelete
+                            , variant = Variant.Gray
+                            , state =
+                                if isDeleting then
+                                    Button.Loading
+
+                                else
+                                    Button.Enabled "Delete Post"
+                            }
+                        ]
+
+                  else
+                    none
+                ]
+            , paragraph [] [ text post.text ]
+            ]
+    }
 
 
 
@@ -137,6 +206,9 @@ toSession model =
 
         WithPost wp ->
             wp.session
+
+        Deleting d ->
+            d.session
 
         Errored wp ->
             wp.session
@@ -155,7 +227,23 @@ updateSession model maybeUser =
             , Cmd.none
             )
 
+        Deleting d ->
+            ( Deleting { d | session = Session.updateSession d.session maybeUser }
+            , Cmd.none
+            )
+
         Errored wp ->
             ( Errored { wp | session = Session.updateSession wp.session maybeUser }
             , Cmd.none
             )
+
+
+
+-- GRAPHQL
+
+
+deletePost : PostId -> Cmd Msg
+deletePost postId =
+    mutation
+        (Mutation.deletePost { id = PostId.getId postId })
+        DeletedPost

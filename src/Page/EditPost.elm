@@ -107,7 +107,7 @@ update model msg =
             case maybePost of
                 Just post ->
                     ( SubmittedPost { session = s.session, post = post }
-                    , Route.replaceUrl (Session.navKey s.session) Route.Home
+                    , Route.previousPage (Session.navKey s.session)
                     )
 
                 Nothing ->

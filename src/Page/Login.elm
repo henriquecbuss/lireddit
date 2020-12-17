@@ -196,7 +196,6 @@ update model msg =
                             Session.LoggedIn (Session.navKey l.session) user
                         , user = user
                         }
-                      -- , Route.replaceUrl (Session.navKey l.session) Route.Home
                     , Route.previousPage (Session.navKey l.session)
                     )
 
