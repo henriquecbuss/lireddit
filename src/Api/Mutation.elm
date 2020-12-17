@@ -45,29 +45,19 @@ createPost requiredArgs object_ =
     Object.selectionForCompositeField "createPost" [ Argument.required "options" requiredArgs.options Api.InputObject.encodePostInput ] object_ identity
 
 
-type alias UpdatePostOptionalArguments =
-    { title : OptionalArgument String }
-
-
 type alias UpdatePostRequiredArguments =
-    { id : Float }
+    { text : String
+    , title : String
+    , id : Int
+    }
 
 
 updatePost :
-    (UpdatePostOptionalArguments -> UpdatePostOptionalArguments)
-    -> UpdatePostRequiredArguments
+    UpdatePostRequiredArguments
     -> SelectionSet decodesTo Api.Object.Post
     -> SelectionSet (Maybe decodesTo) RootMutation
-updatePost fillInOptionals requiredArgs object_ =
-    let
-        filledInOptionals =
-            fillInOptionals { title = Absent }
-
-        optionalArgs =
-            [ Argument.optional "title" filledInOptionals.title Encode.string ]
-                |> List.filterMap identity
-    in
-    Object.selectionForCompositeField "updatePost" (optionalArgs ++ [ Argument.required "id" requiredArgs.id Encode.float ]) object_ (identity >> Decode.nullable)
+updatePost requiredArgs object_ =
+    Object.selectionForCompositeField "updatePost" [ Argument.required "text" requiredArgs.text Encode.string, Argument.required "title" requiredArgs.title Encode.string, Argument.required "id" requiredArgs.id Encode.int ] object_ (identity >> Decode.nullable)
 
 
 type alias DeletePostRequiredArguments =

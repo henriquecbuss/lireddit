@@ -15,7 +15,6 @@ import Api.Query as Query
 import Browser
 import Components.Button as Button
 import Components.LinkButton exposing (linkButton)
-import Components.Navbar exposing (navbar)
 import Components.Variant as Variant
 import Element exposing (..)
 import Element.Border as Border
@@ -40,28 +39,26 @@ import User exposing (User)
 
 
 type Model
-    = WithData { session : Session, posts : List PostWithUser, isLoggingOut : Bool }
-    | Loading { session : Session, posts : List PostWithUser, isLoggingOut : Bool }
-    | NoMoreData { session : Session, posts : List PostWithUser, isLoggingOut : Bool }
+    = WithData { session : Session, posts : List PostWithUser }
+    | Loading { session : Session, posts : List PostWithUser }
+    | NoMoreData { session : Session, posts : List PostWithUser }
     | Voting
         { session : Session
         , posts : List PostWithUser
         , votingOn : PostWithUser
-        , isLoggingOut : Bool
         , hadData : Bool
         }
     | Deleting
         { session : Session
         , posts : List PostWithUser
         , deleting : PostWithUser
-        , isLoggingOut : Bool
         , hadData : Bool
         }
 
 
 paginationLimit : Int
 paginationLimit =
-    5
+    10
 
 
 init : Session -> ( Model, Cmd Msg )
@@ -69,7 +66,6 @@ init session =
     ( Loading
         { session = session
         , posts = []
-        , isLoggingOut = False
         }
     , fetchPosts { limit = paginationLimit, cursor = Nothing }
     )
@@ -84,8 +80,6 @@ type Msg
     | RequestedPosts
     | RequestedVote PostWithUser Bool
     | Voted (GraphQLResult Post)
-    | RequestedLogOut
-    | LoggedOut (GraphQLResult Bool)
     | RequestedDelete PostWithUser
     | DeletedPost (GraphQLResult Bool)
 
@@ -121,37 +115,12 @@ view model =
 
                 _ ->
                     False
-
-        isLoggingOut =
-            case model of
-                WithData wd ->
-                    wd.isLoggingOut
-
-                Loading l ->
-                    l.isLoggingOut
-
-                NoMoreData nmd ->
-                    nmd.isLoggingOut
-
-                Voting v ->
-                    v.isLoggingOut
-
-                Deleting d ->
-                    d.isLoggingOut
     in
     { title = "LiReddit"
     , body =
         [ layout []
             (column [ spacing 40, width fill ]
-                [ navbar (toSession model)
-                    (if isLoggingOut then
-                        Nothing
-
-                     else
-                        Just RequestedLogOut
-                    )
-                    isLoggingOut
-                , if isInitialLoad then
+                [ if isInitialLoad then
                     text "Loading"
 
                   else
@@ -328,15 +297,15 @@ viewPost model post =
 
             Session.LoggedIn _ user ->
                 if user.id == post.creator.id then
-                    el [ alignRight, alignTop ] <|
-                        Button.button []
+                    column [ alignRight, alignTop, spacing 20 ]
+                        [ Button.button []
                             { onClick =
                                 if isDeleting then
                                     Nothing
 
                                 else
                                     Just <| RequestedDelete post
-                            , variant = Variant.Red
+                            , variant = Variant.Gray
                             , state =
                                 if isDeleting then
                                     Button.Loading
@@ -344,6 +313,12 @@ viewPost model post =
                                 else
                                     Button.Enabled "Delete"
                             }
+                        , linkButton [ width fill ]
+                            { route = Route.EditPost post.id
+                            , variant = Variant.Gray
+                            , label = el [ centerX ] <| text "Edit"
+                            }
+                        ]
 
                 else
                     none
@@ -356,24 +331,6 @@ viewPost model post =
 
 update : Model -> Msg -> ( Model, Cmd Msg )
 update model msg =
-    let
-        setLoggingOut m val =
-            case m of
-                WithData wd ->
-                    WithData { wd | isLoggingOut = val }
-
-                Loading l ->
-                    Loading { l | isLoggingOut = val }
-
-                NoMoreData nmd ->
-                    NoMoreData { nmd | isLoggingOut = val }
-
-                Voting v ->
-                    Voting { v | isLoggingOut = val }
-
-                Deleting d ->
-                    Deleting { d | isLoggingOut = val }
-    in
     case ( msg, model ) of
         ( GotPosts (Ok paginatedPosts), Loading l ) ->
             if paginatedPosts.hasMore then
@@ -409,7 +366,6 @@ update model msg =
                 , posts = wd.posts
                 , votingOn = post
                 , hadData = True
-                , isLoggingOut = wd.isLoggingOut
                 }
             , vote { isPositive = isPositive, postId = PostId.getId post.id }
             )
@@ -420,7 +376,6 @@ update model msg =
                 , posts = nmd.posts
                 , votingOn = post
                 , hadData = False
-                , isLoggingOut = nmd.isLoggingOut
                 }
             , vote { isPositive = isPositive, postId = PostId.getId post.id }
             )
@@ -430,7 +385,6 @@ update model msg =
                 modelObj =
                     { session = v.session
                     , posts = renewPostVotes post v.posts
-                    , isLoggingOut = v.isLoggingOut
                     }
             in
             if v.hadData then
@@ -439,24 +393,12 @@ update model msg =
             else
                 ( NoMoreData modelObj, Cmd.none )
 
-        ( RequestedLogOut, _ ) ->
-            ( setLoggingOut model True, GraphQL.mutation Mutation.logout LoggedOut )
-
-        ( LoggedOut result, _ ) ->
-            case result of
-                Ok True ->
-                    updateSession (setLoggingOut model False) Nothing
-
-                _ ->
-                    ( model, Cmd.none )
-
         ( RequestedDelete post, WithData wd ) ->
             ( Deleting
                 { session = wd.session
                 , posts = wd.posts
                 , deleting = post
                 , hadData = True
-                , isLoggingOut = wd.isLoggingOut
                 }
             , deletePost post.id
             )
@@ -467,7 +409,6 @@ update model msg =
                 , posts = nmd.posts
                 , deleting = post
                 , hadData = False
-                , isLoggingOut = nmd.isLoggingOut
                 }
             , deletePost post.id
             )
@@ -477,7 +418,6 @@ update model msg =
                 modelObj =
                     { session = d.session
                     , posts = List.filter (\p -> p /= d.deleting) d.posts
-                    , isLoggingOut = d.isLoggingOut
                     }
             in
             if d.hadData then

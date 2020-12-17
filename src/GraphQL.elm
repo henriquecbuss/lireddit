@@ -1,6 +1,7 @@
 module GraphQL exposing
     ( GraphQLResult
     , UserResult(..)
+    , getPost
     , getSession
     , mutation
     , postSelection
@@ -26,7 +27,7 @@ import Graphql.Http exposing (Request)
 import Graphql.Operation exposing (RootMutation, RootQuery)
 import Graphql.SelectionSet as SelectionSet exposing (SelectionSet)
 import Post exposing (PaginatedPosts, Post, PostWithUser)
-import Post.PostId exposing (PostId(..))
+import Post.PostId as PostId exposing (PostId(..))
 import User exposing (User)
 
 
@@ -80,6 +81,11 @@ query selectionSet toMsg =
 getSession : Nav.Key -> (GraphQLResult (Maybe User) -> msg) -> Cmd msg
 getSession key toMsg =
     query (Query.me userSelection) toMsg
+
+
+getPost : PostId -> (GraphQLResult (Maybe PostWithUser) -> msg) -> Cmd msg
+getPost postId msg =
+    query (Query.post { id = PostId.getId postId } postWithUserSelection) msg
 
 
 

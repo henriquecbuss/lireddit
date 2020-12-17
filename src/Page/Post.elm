@@ -3,7 +3,6 @@ module Page.Post exposing (..)
 import Api.Mutation as Mutation
 import Api.Query as Query
 import Browser
-import Components.Navbar exposing (navbar)
 import Element exposing (..)
 import Element.Font as Font
 import GraphQL exposing (GraphQLResult, postWithUserSelection, query)
@@ -23,17 +22,14 @@ type Model
     = Loading
         { session : Session
         , postId : PostId
-        , isLoggingOut : Bool
         }
     | WithPost
         { session : Session
         , post : PostWithUser
-        , isLoggingOut : Bool
         }
     | Errored
         { session : Session
         , message : String
-        , isLoggingOut : Bool
         }
 
 
@@ -42,9 +38,8 @@ init session postId =
     ( Loading
         { session = session
         , postId = postId
-        , isLoggingOut = False
         }
-    , fetchPost postId
+    , GraphQL.getPost postId GotPost
     )
 
 
@@ -53,33 +48,18 @@ init session postId =
 
 
 type Msg
-    = FetchedPost (GraphQLResult (Maybe PostWithUser))
-    | RequestedLogOut
-    | LoggedOut (GraphQLResult Bool)
+    = GotPost (GraphQLResult (Maybe PostWithUser))
 
 
 update : Model -> Msg -> ( Model, Cmd Msg )
 update model msg =
-    let
-        setLoggingOut m val =
-            case m of
-                Loading l ->
-                    Loading { l | isLoggingOut = val }
-
-                WithPost wp ->
-                    WithPost { wp | isLoggingOut = val }
-
-                Errored e ->
-                    Errored { e | isLoggingOut = val }
-    in
     case ( msg, model ) of
-        ( FetchedPost (Ok maybePost), Loading l ) ->
+        ( GotPost (Ok maybePost), Loading l ) ->
             case maybePost of
                 Just post ->
                     ( WithPost
                         { session = l.session
                         , post = post
-                        , isLoggingOut = l.isLoggingOut
                         }
                     , Cmd.none
                     )
@@ -88,33 +68,20 @@ update model msg =
                     ( Errored
                         { session = l.session
                         , message = "Could not find post"
-                        , isLoggingOut = l.isLoggingOut
                         }
                     , Cmd.none
                     )
 
-        ( FetchedPost (Err e), Loading l ) ->
+        ( GotPost (Err e), Loading l ) ->
             ( Errored
                 { session = l.session
                 , message = "Unknown error"
-                , isLoggingOut = l.isLoggingOut
                 }
             , Cmd.none
             )
 
-        ( RequestedLogOut, _ ) ->
-            ( setLoggingOut model True, GraphQL.mutation Mutation.logout LoggedOut )
-
-        ( LoggedOut result, _ ) ->
-            case result of
-                Ok True ->
-                    updateSession (setLoggingOut model False) Nothing
-
-                _ ->
-                    ( model, Cmd.none )
-
         -- Invalid messages
-        ( FetchedPost _, _ ) ->
+        ( GotPost _, _ ) ->
             ( model, Cmd.none )
 
 
@@ -125,33 +92,10 @@ update model msg =
 view : Model -> Browser.Document Msg
 view model =
     let
-        isLoggingOut =
-            case model of
-                Loading l ->
-                    l.isLoggingOut
-
-                WithPost wd ->
-                    wd.isLoggingOut
-
-                Errored e ->
-                    e.isLoggingOut
-
-        baseCol =
-            column [ width <| maximum 800 fill, centerX, spacing 50 ]
-
         postView children =
             [ layout [] <|
-                column [ width fill, spacing 100 ] <|
-                    [ navbar (toSession model)
-                        (if isLoggingOut then
-                            Nothing
-
-                         else
-                            Just RequestedLogOut
-                        )
-                        isLoggingOut
-                    , baseCol children
-                    ]
+                column [ width <| maximum 800 fill, centerX, spacing 50 ]
+                    children
             ]
     in
     case model of
@@ -164,7 +108,7 @@ view model =
             { title = post.title
             , body =
                 postView
-                    [ column [ spacing 10 ]
+                    [ column [ spacing 10, centerX, centerY, width <| maximum 800 fill ]
                         [ el [ Font.bold ] <| text post.title
                         , paragraph [ Font.color <| rgb 0.7 0.7 0.7, Font.size 18 ]
                             [ text "written by "
@@ -215,12 +159,3 @@ updateSession model maybeUser =
             ( Errored { wp | session = Session.updateSession wp.session maybeUser }
             , Cmd.none
             )
-
-
-
--- GRAPHQL
-
-
-fetchPost : PostId -> Cmd Msg
-fetchPost postId =
-    query (Query.post { id = PostId.getId postId } postWithUserSelection) FetchedPost

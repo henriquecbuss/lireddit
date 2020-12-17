@@ -1,13 +1,16 @@
 module Main exposing (..)
 
-import Api.Mutation exposing (forgotPassword)
+import Api.Mutation as Mutation exposing (forgotPassword)
 import Api.Query as Query
 import Browser
 import Browser.Navigation as Nav
+import Components.Navbar exposing (navbar)
+import Element exposing (..)
 import GraphQL exposing (GraphQLResult, query, userSelection)
-import Html exposing (..)
+import Html exposing (Html)
 import Page.ChangePassword as ChangePassword
 import Page.CreatePost as CreatePost
+import Page.EditPost as EditPost
 import Page.ForgotPassword as ForgotPassword
 import Page.Home as Home
 import Page.Login as Login
@@ -32,6 +35,7 @@ type Model
     | ForgotPassword ForgotPassword.Model
     | CreatePost CreatePost.Model
     | Post Post.Model
+    | EditPost EditPost.Model
     | NotFound Session
     | Redirect Session
 
@@ -53,9 +57,12 @@ type Msg
     | GotForgotPasswordMsg ForgotPassword.Msg
     | GotCreatePostMsg CreatePost.Msg
     | GotPostMsg Post.Msg
+    | GotEditPostMsg EditPost.Msg
     | ChangedUrl Url.Url
     | RequestedUrl Browser.UrlRequest
     | GotSession (GraphQLResult (Maybe User))
+    | RequestedLogOut
+    | LoggedOut (GraphQLResult Bool)
 
 
 
@@ -78,10 +85,22 @@ main =
 -- VIEW
 
 
-viewPage : Browser.Document a -> (a -> Msg) -> Browser.Document Msg
-viewPage docView msg =
+viewPage : Browser.Document a -> (a -> Msg) -> Maybe Session -> Browser.Document Msg
+viewPage docView msg maybeSession =
     { title = docView.title
-    , body = List.map (Html.map msg) docView.body
+    , body =
+        [ layout [] <|
+            column [ width fill, spacing 50 ] <|
+                (case maybeSession of
+                    Nothing ->
+                        none
+
+                    Just session ->
+                        -- TODO - Update isLoggingOut
+                        navbar session (Just RequestedLogOut) False
+                )
+                    :: List.map (Html.map msg >> html) docView.body
+        ]
     }
 
 
@@ -89,28 +108,41 @@ view : Model -> Browser.Document Msg
 view model =
     case model of
         Redirect _ ->
-            { title = "Loading", body = [ text "loading" ] }
+            { title = "Loading", body = [ layout [] <| text "loading" ] }
 
         Register register ->
-            viewPage (Register.view register) GotRegisterMsg
+            viewPage (Register.view register) GotRegisterMsg (Just <| toSession model)
 
         Home home ->
-            viewPage (Home.view home) GotHomeMsg
+            viewPage (Home.view home) GotHomeMsg (Just <| toSession model)
 
         Login login ->
-            viewPage (Login.view login) GotLoginMsg
+            viewPage (Login.view login) GotLoginMsg (Just <| toSession model)
 
         ChangePassword changePassword ->
-            viewPage (ChangePassword.view changePassword) GotChangePasswordMsg
+            viewPage (ChangePassword.view changePassword)
+                GotChangePasswordMsg
+                (Just <| toSession model)
 
         ForgotPassword forgotPassword ->
-            viewPage (ForgotPassword.view forgotPassword) GotForgotPasswordMsg
+            viewPage (ForgotPassword.view forgotPassword)
+                GotForgotPasswordMsg
+                (Just <| toSession model)
 
         CreatePost createPost ->
-            viewPage (CreatePost.view createPost) GotCreatePostMsg
+            viewPage (CreatePost.view createPost)
+                GotCreatePostMsg
+                (Just <| toSession model)
+
+        EditPost editPost ->
+            viewPage (EditPost.view editPost)
+                GotEditPostMsg
+                (Just <| toSession model)
 
         Post post ->
-            viewPage (Post.view post) GotPostMsg
+            viewPage (Post.view post)
+                GotPostMsg
+                (Just <| toSession model)
 
         NotFound _ ->
             NotFound.view
@@ -165,12 +197,27 @@ update msg model =
             Post.update post postMsg
                 |> updateWith Post GotPostMsg model
 
+        ( GotEditPostMsg editPostMsg, EditPost editPost ) ->
+            EditPost.update editPost editPostMsg
+                |> updateWith EditPost GotEditPostMsg model
+
         ( GotSession result, _ ) ->
             case result of
                 Ok user ->
                     updateSession model user
 
                 Err _ ->
+                    ( model, Cmd.none )
+
+        ( RequestedLogOut, _ ) ->
+            ( model, GraphQL.mutation Mutation.logout LoggedOut )
+
+        ( LoggedOut result, _ ) ->
+            case result of
+                Ok True ->
+                    updateSession model Nothing
+
+                _ ->
                     ( model, Cmd.none )
 
         -- Disregard invalid messages
@@ -190,6 +237,9 @@ update msg model =
             ( model, Cmd.none )
 
         ( GotCreatePostMsg _, _ ) ->
+            ( model, Cmd.none )
+
+        ( GotEditPostMsg editPostMsg, _ ) ->
             ( model, Cmd.none )
 
         ( GotPostMsg _, _ ) ->
@@ -264,6 +314,10 @@ changeRouteTo maybeRoute model =
             Post.init session postId
                 |> updateWithSession Post GotPostMsg model
 
+        Just (Route.EditPost postId) ->
+            EditPost.init session postId
+                |> updateWithSession EditPost GotEditPostMsg model
+
 
 toSession : Model -> Session
 toSession page =
@@ -294,6 +348,9 @@ toSession page =
 
         Post post ->
             Post.toSession post
+
+        EditPost editPost ->
+            EditPost.toSession editPost
 
 
 updateSession : Model -> Maybe User -> ( Model, Cmd Msg )
@@ -330,6 +387,10 @@ updateSession page maybeUser =
         Post post ->
             Post.updateSession post maybeUser
                 |> updateWith Post GotPostMsg page
+
+        EditPost editPost ->
+            EditPost.updateSession editPost maybeUser
+                |> updateWith EditPost GotEditPostMsg page
 
 
 

@@ -20,6 +20,7 @@ type Route
     | ChangePassword Token
     | CreatePost
     | Post PostId
+    | EditPost PostId
 
 
 parser : Parser (Route -> a) a
@@ -32,6 +33,7 @@ parser =
         , Parser.map ForgotPassword (s "change-password")
         , Parser.map CreatePost (s "create-post")
         , Parser.map Post (s "post" </> PostId.urlParser)
+        , Parser.map EditPost (s "edit-post" </> PostId.urlParser)
         ]
 
 
@@ -94,3 +96,6 @@ routeToPieces page =
 
         Post postId ->
             [ "post", PostId.toString postId ]
+
+        EditPost postId ->
+            [ "edit-post", PostId.toString postId ]

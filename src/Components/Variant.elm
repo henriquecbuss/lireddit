@@ -28,7 +28,7 @@ bg variant =
             rgb255 183 48 48
 
         Gray ->
-            rgb255 130 130 130
+            rgb255 200 200 200
 
         Teal ->
             rgb255 0 128 128
@@ -36,7 +36,12 @@ bg variant =
 
 fg : Variant -> Color
 fg variant =
-    rgb 1 1 1
+    case variant of
+        Gray ->
+            rgb 0.2 0.2 0.2
+
+        _ ->
+            rgb 1 1 1
 
 
 border : Variant -> Color
