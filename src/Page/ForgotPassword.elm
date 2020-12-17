@@ -84,7 +84,7 @@ view model =
     in
     { title = "Password Recovery"
     , body =
-        [ layout [] <|
+        [ layoutWith { options = [ noStaticStyleSheet ] } [] <|
             case model of
                 GaveToken g ->
                     el [ centerX, centerY ] <|

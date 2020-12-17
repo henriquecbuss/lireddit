@@ -143,7 +143,7 @@ view model =
         Loading _ ->
             { title = "Loading"
             , body =
-                [ layout [] <|
+                [ layoutWith { options = [ noStaticStyleSheet ] } [] <|
                     el [ centerX, centerY ] <|
                         text "Loading"
                 ]
@@ -152,7 +152,7 @@ view model =
         Editing e ->
             { title = "Editing " ++ e.title
             , body =
-                [ layout [] <|
+                [ layoutWith { options = [ noStaticStyleSheet ] } [] <|
                     userForm Nothing
                         [ Input.text []
                             { onChange = ChangedTitle
@@ -185,18 +185,18 @@ view model =
 
         Submitting s ->
             { title = "Submiting"
-            , body = [ layout [] <| text "Your post is being submitted" ]
+            , body = [ layoutWith { options = [ noStaticStyleSheet ] } [] <| text "Your post is being submitted" ]
             }
 
         SubmittedPost sp ->
             { title = "Success!"
-            , body = [ layout [] <| text "Your post has been updated!" ]
+            , body = [ layoutWith { options = [ noStaticStyleSheet ] } [] <| text "Your post has been updated!" ]
             }
 
         Errored { message } ->
             { title = "Something went wrong"
             , body =
-                [ layout [] <|
+                [ layoutWith { options = [ noStaticStyleSheet ] } [] <|
                     column [ centerX, centerY, spacing 50 ]
                         [ text message
                         , linkButton [ centerX ]

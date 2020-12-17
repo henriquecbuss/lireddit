@@ -138,7 +138,7 @@ view model =
     in
     { title = "Password Recovery"
     , body =
-        [ layout [] <|
+        [ layoutWith { options = [ noStaticStyleSheet ] } [] <|
             case model of
                 Changed c ->
                     el [ centerX, centerY ] (text "Password Changed!")

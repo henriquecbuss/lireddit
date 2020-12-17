@@ -89,26 +89,33 @@ viewPage : Browser.Document a -> (a -> Msg) -> Maybe Session -> Browser.Document
 viewPage docView msg maybeSession =
     { title = docView.title
     , body =
-        [ layout [] <|
-            column [ width fill, spacing 50 ] <|
-                (case maybeSession of
-                    Nothing ->
-                        none
-
-                    Just session ->
-                        -- TODO - Update isLoggingOut
-                        navbar session (Just RequestedLogOut) False
-                )
-                    :: List.map (Html.map msg >> html) docView.body
+        [ basicView maybeSession <|
+            List.map (Html.map msg >> html) docView.body
         ]
     }
+
+
+basicView : Maybe Session -> List (Element Msg) -> Html Msg
+basicView maybeSession children =
+    layout [] <|
+        column [ width fill, spacing 50 ] <|
+            (case maybeSession of
+                Nothing ->
+                    none
+
+                Just session ->
+                    navbar session (Just RequestedLogOut) False
+            )
+                :: children
 
 
 view : Model -> Browser.Document Msg
 view model =
     case model of
         Redirect _ ->
-            { title = "Loading", body = [ layout [] <| text "loading" ] }
+            { title = "Loading"
+            , body = [ basicView (Just <| toSession model) [ text "Loading" ] ]
+            }
 
         Register register ->
             viewPage (Register.view register) GotRegisterMsg (Just <| toSession model)

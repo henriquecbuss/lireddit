@@ -134,7 +134,7 @@ view model =
 
 defaultView : List (Element Msg) -> List (Html Msg)
 defaultView children =
-    [ layout [] <|
+    [ layoutWith { options = [ noStaticStyleSheet ] } [] <|
         column [ width <| maximum 1000 fill, centerX, spacing 50 ]
             children
     ]

@@ -109,7 +109,7 @@ view model =
     in
     { title = "Create Post"
     , body =
-        [ layout [] <|
+        [ layoutWith { options = [ noStaticStyleSheet ] } [] <|
             case model of
                 Posted _ ->
                     el [ centerX, centerY ] <|

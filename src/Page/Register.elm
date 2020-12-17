@@ -141,10 +141,10 @@ view model =
     , body =
         case model of
             Registered { user } ->
-                [ layout [] (text <| "Registered: " ++ user.username) ]
+                [ layoutWith { options = [ noStaticStyleSheet ] } [] (text <| "Registered: " ++ user.username) ]
 
             _ ->
-                [ layout [] <|
+                [ layoutWith { options = [ noStaticStyleSheet ] } [] <|
                     userForm (Just Submitted)
                         [ Error.viewInputWithError Input.username
                             [ Input.focusedOnLoad ]

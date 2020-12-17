@@ -116,7 +116,7 @@ view model =
                     _ ->
                         True
         in
-        [ layout [] <|
+        [ layoutWith { options = [ noStaticStyleSheet ] } [] <|
             userForm (Just Submitted)
                 [ Error.viewInputWithError Input.username
                     [ Input.focusedOnLoad ]

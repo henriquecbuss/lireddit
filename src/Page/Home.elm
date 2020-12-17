@@ -118,7 +118,8 @@ view model =
     in
     { title = "LiReddit"
     , body =
-        [ layout []
+        [ layoutWith { options = [ noStaticStyleSheet ] }
+            []
             (column [ spacing 40, width fill ]
                 [ if isInitialLoad then
                     text "Loading"

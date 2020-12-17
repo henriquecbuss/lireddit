@@ -13,6 +13,6 @@ view : Browser.Document msg
 view =
     { title = "Not Found"
     , body =
-        [ layout [] (el [] (text "not found"))
+        [ layoutWith { options = [ noStaticStyleSheet ] } [] (el [] (text "not found"))
         ]
     }
