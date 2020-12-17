@@ -197,20 +197,28 @@ viewPost model post =
                     False
 
         votedPositive =
-            case post.voteStatus of
-                Just True ->
-                    True
+            if not loggedIn then
+                False
 
-                _ ->
-                    False
+            else
+                case post.voteStatus of
+                    Just True ->
+                        True
+
+                    _ ->
+                        False
 
         votedNegative =
-            case post.voteStatus of
-                Just False ->
-                    True
+            if not loggedIn then
+                False
 
-                _ ->
-                    False
+            else
+                case post.voteStatus of
+                    Just False ->
+                        True
+
+                    _ ->
+                        False
 
         isDeleting =
             case model of
@@ -229,57 +237,49 @@ viewPost model post =
         ]
         [ column
             [ centerY, spacing 15 ]
-            [ if loggedIn then
-                Button.button
-                    []
-                    { onClick =
-                        if votedPositive then
-                            Nothing
+            [ Button.button
+                []
+                { onClick =
+                    if votedPositive || not loggedIn then
+                        Nothing
 
-                        else
-                            Just <| RequestedVote post True
-                    , variant =
-                        if votedPositive then
-                            Variant.Green
+                    else
+                        Just <| RequestedVote post True
+                , variant =
+                    if votedPositive then
+                        Variant.Green
 
-                        else
-                            Variant.Gray
-                    , state =
-                        if voting then
-                            Button.Loading
+                    else
+                        Variant.Gray
+                , state =
+                    if voting then
+                        Button.Loading
 
-                        else
-                            Button.Enabled "/\\"
-                    }
-
-              else
-                none
+                    else
+                        Button.Enabled "/\\"
+                }
             , el [ centerX, Font.size 16 ] <| text <| String.fromFloat post.points
-            , if loggedIn then
-                Button.button
-                    []
-                    { onClick =
-                        if votedNegative then
-                            Nothing
+            , Button.button
+                []
+                { onClick =
+                    if votedNegative || not loggedIn then
+                        Nothing
 
-                        else
-                            Just <| RequestedVote post False
-                    , variant =
-                        if votedNegative then
-                            Variant.Red
+                    else
+                        Just <| RequestedVote post False
+                , variant =
+                    if votedNegative then
+                        Variant.Red
 
-                        else
-                            Variant.Gray
-                    , state =
-                        if voting then
-                            Button.Loading
+                    else
+                        Variant.Gray
+                , state =
+                    if voting then
+                        Button.Loading
 
-                        else
-                            Button.Enabled "\\/"
-                    }
-
-              else
-                none
+                    else
+                        Button.Enabled "\\/"
+                }
             ]
         , column [ width fill, spacing 20, height fill ]
             [ column [ spacing 10, width fill ]

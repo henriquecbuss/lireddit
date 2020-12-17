@@ -9,7 +9,6 @@ import Element.Input as Input
 
 
 
--- TODO - Video at 11:03
 -- TYPES
 
 
