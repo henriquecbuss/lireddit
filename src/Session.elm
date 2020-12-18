@@ -1,4 +1,4 @@
-module Session exposing (Session(..), navKey, updateSession)
+module Session exposing (Session, apiUrl, getUser, guest, logIn, navKey, updateSession)
 
 import Browser.Navigation as Nav
 import User exposing (User)
@@ -9,8 +9,8 @@ import User exposing (User)
 
 
 type Session
-    = LoggedIn Nav.Key User
-    | Guest Nav.Key
+    = LoggedIn Nav.Key User String
+    | Guest Nav.Key String
 
 
 
@@ -20,11 +20,41 @@ type Session
 navKey : Session -> Nav.Key
 navKey session =
     case session of
-        LoggedIn key _ ->
+        LoggedIn key _ _ ->
             key
 
-        Guest key ->
+        Guest key _ ->
             key
+
+
+apiUrl : Session -> String
+apiUrl session =
+    case session of
+        LoggedIn _ _ url ->
+            url
+
+        Guest _ url ->
+            url
+
+
+getUser : Session -> Maybe User
+getUser session =
+    case session of
+        LoggedIn _ user _ ->
+            Just user
+
+        Guest _ _ ->
+            Nothing
+
+
+logIn : Session -> User -> Session
+logIn session user =
+    LoggedIn (navKey session) user (apiUrl session)
+
+
+guest : Nav.Key -> String -> Session
+guest =
+    Guest
 
 
 
@@ -35,7 +65,7 @@ updateSession : Session -> Maybe User -> Session
 updateSession session maybeUser =
     case maybeUser of
         Nothing ->
-            Guest (navKey session)
+            Guest (navKey session) (apiUrl session)
 
         Just user ->
-            LoggedIn (navKey session) user
+            LoggedIn (navKey session) user (apiUrl session)

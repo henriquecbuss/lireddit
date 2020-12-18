@@ -43,7 +43,7 @@ init session postId =
         { session = session
         , postId = postId
         }
-    , GraphQL.getPost postId GotPost
+    , GraphQL.getPost (Session.apiUrl session) postId GotPost
     )
 
 
@@ -87,7 +87,7 @@ update model msg =
             )
 
         ( RequestedDelete, WithPost wp ) ->
-            ( Deleting wp, deletePost wp.post.id )
+            ( Deleting wp, deletePost (Session.apiUrl wp.session) wp.post.id )
 
         ( DeletedPost (Ok True), _ ) ->
             ( model, Route.previousPage (Session.navKey <| toSession model) )
@@ -144,11 +144,11 @@ viewPost : Session -> PostWithUser -> Bool -> Browser.Document Msg
 viewPost session post isDeleting =
     let
         isOwner =
-            case session of
-                Session.LoggedIn _ user ->
+            case Session.getUser session of
+                Just user ->
                     user.id == post.creator.id
 
-                _ ->
+                Nothing ->
                     False
     in
     { title = post.title
@@ -242,8 +242,8 @@ updateSession model maybeUser =
 -- GRAPHQL
 
 
-deletePost : PostId -> Cmd Msg
-deletePost postId =
-    mutation
+deletePost : String -> PostId -> Cmd Msg
+deletePost apiUrl postId =
+    mutation apiUrl
         (Mutation.deletePost { id = PostId.getId postId })
         DeletedPost

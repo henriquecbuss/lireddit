@@ -69,7 +69,8 @@ update model msg =
         ( Submitted, Changing c ) ->
             ( Loading
                 { session = c.session, token = c.token, password = c.password }
-            , changePassword { newPassword = c.password, token = c.token }
+            , changePassword (Session.apiUrl c.session)
+                { newPassword = c.password, token = c.token }
             )
 
         ( Submitted, _ ) ->
@@ -232,6 +233,6 @@ updateSession model maybeUser =
 -- GRAPHQL
 
 
-changePassword : { newPassword : String, token : String } -> Cmd Msg
-changePassword options =
-    mutation (Mutation.changePassword options userResultSelection) GotResult
+changePassword : String -> { newPassword : String, token : String } -> Cmd Msg
+changePassword apiUrl options =
+    mutation apiUrl (Mutation.changePassword options userResultSelection) GotResult

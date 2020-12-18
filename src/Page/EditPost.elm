@@ -33,7 +33,9 @@ type Model
 
 init : Session -> PostId -> ( Model, Cmd Msg )
 init session postId =
-    ( Loading { session = session, postId = postId }, GraphQL.getPost postId GotPost )
+    ( Loading { session = session, postId = postId }
+    , GraphQL.getPost (Session.apiUrl session) postId GotPost
+    )
 
 
 
@@ -56,12 +58,9 @@ update model msg =
                 Just post ->
                     let
                         userId =
-                            case l.session of
-                                Session.Guest _ ->
-                                    Nothing
-
-                                Session.LoggedIn _ user ->
-                                    Just user.id
+                            l.session
+                                |> Session.getUser
+                                |> Maybe.map .id
                     in
                     if Just post.creator.id == userId then
                         ( Editing
@@ -100,7 +99,8 @@ update model msg =
 
         ( Submitted, Editing e ) ->
             ( Submitting { session = e.session }
-            , updatePost { id = e.post.id, title = e.title, text = e.text }
+            , updatePost (Session.apiUrl e.session)
+                { id = e.post.id, title = e.title, text = e.text }
             )
 
         ( UpdatedPost (Ok maybePost), Submitting s ) ->
@@ -265,9 +265,9 @@ updateSession model maybeUser =
 -- GRAPHQL
 
 
-updatePost : { id : PostId, title : String, text : String } -> Cmd Msg
-updatePost { id, title, text } =
-    mutation
+updatePost : String -> { id : PostId, title : String, text : String } -> Cmd Msg
+updatePost apiUrl { id, title, text } =
+    mutation apiUrl
         (Mutation.updatePost { id = PostId.getId id, title = title, text = text }
             postSelection
         )

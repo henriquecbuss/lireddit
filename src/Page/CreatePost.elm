@@ -52,7 +52,10 @@ update model msg =
             ( Posting { p | text = text }, Cmd.none )
 
         ( Submitted, Posting p ) ->
-            ( Loading p, createPost { options = { title = p.title, text = p.text } } )
+            ( Loading p
+            , createPost (Session.apiUrl p.session)
+                { options = { title = p.title, text = p.text } }
+            )
 
         ( CreatedPost res, Loading l ) ->
             case res of
@@ -120,8 +123,8 @@ view model =
                         text "Something went wrong :/"
 
                 _ ->
-                    case toSession model of
-                        Session.Guest _ ->
+                    case Session.getUser (toSession model) of
+                        Nothing ->
                             column [ width fill, centerY, moveUp 100, spacing 80 ]
                                 [ el [ centerX ] <| text "You need to log in to create a post"
                                 , row [ width fill, spacing 80 ]
@@ -140,7 +143,7 @@ view model =
                                     ]
                                 ]
 
-                        _ ->
+                        Just _ ->
                             userForm Nothing
                                 [ Input.text []
                                     { onChange = ChangedTitle
@@ -224,6 +227,6 @@ updateSession model maybeUser =
 -- GRAPHQL
 
 
-createPost : { options : { title : String, text : String } } -> Cmd Msg
-createPost options =
-    mutation (Mutation.createPost options postSelection) CreatedPost
+createPost : String -> { options : { title : String, text : String } } -> Cmd Msg
+createPost apiUrl options =
+    mutation apiUrl (Mutation.createPost options postSelection) CreatedPost

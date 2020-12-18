@@ -47,7 +47,7 @@ update model msg =
 
         ( Submitted, ReceivingEmail r ) ->
             ( Loading { session = r.session, email = r.email }
-            , sendTokenEmail r.email
+            , sendTokenEmail (Session.apiUrl r.session) r.email
             )
 
         ( SentToken _, Loading l ) ->
@@ -157,6 +157,6 @@ updateSession model maybeUser =
 -- GRAPHQL
 
 
-sendTokenEmail : String -> Cmd Msg
-sendTokenEmail email =
-    mutation (Mutation.forgotPassword { email = email }) SentToken
+sendTokenEmail : String -> String -> Cmd Msg
+sendTokenEmail apiUrl email =
+    mutation apiUrl (Mutation.forgotPassword { email = email }) SentToken

@@ -67,7 +67,7 @@ init session =
         { session = session
         , posts = []
         }
-    , fetchPosts { limit = paginationLimit, cursor = Nothing }
+    , fetchPosts (Session.apiUrl session) { limit = paginationLimit, cursor = Nothing }
     )
 
 
@@ -181,12 +181,10 @@ viewPost : Model -> PostWithUser -> Element Msg
 viewPost model post =
     let
         loggedIn =
-            case toSession model of
-                Session.LoggedIn _ _ ->
-                    True
-
-                _ ->
-                    False
+            toSession model
+                |> Session.getUser
+                |> Maybe.map (\_ -> True)
+                |> Maybe.withDefault False
 
         voting =
             case model of
@@ -292,11 +290,11 @@ viewPost model post =
                 ]
             , paragraph [] [ text post.text ]
             ]
-        , case toSession model of
-            Session.Guest _ ->
+        , case Session.getUser (toSession model) of
+            Nothing ->
                 none
 
-            Session.LoggedIn _ user ->
+            Just user ->
                 if user.id == post.creator.id then
                     column [ alignRight, alignTop, spacing 20 ]
                         [ Button.button []
@@ -357,7 +355,7 @@ update model msg =
 
                 Just lastPost ->
                     ( Loading wd
-                    , fetchPosts
+                    , fetchPosts (Session.apiUrl wd.session)
                         { limit = paginationLimit, cursor = Just lastPost.createdAt }
                     )
 
@@ -368,7 +366,8 @@ update model msg =
                 , votingOn = post
                 , hadData = True
                 }
-            , vote { isPositive = isPositive, postId = PostId.getId post.id }
+            , vote (Session.apiUrl wd.session)
+                { isPositive = isPositive, postId = PostId.getId post.id }
             )
 
         ( RequestedVote post isPositive, NoMoreData nmd ) ->
@@ -378,7 +377,8 @@ update model msg =
                 , votingOn = post
                 , hadData = False
                 }
-            , vote { isPositive = isPositive, postId = PostId.getId post.id }
+            , vote (Session.apiUrl nmd.session)
+                { isPositive = isPositive, postId = PostId.getId post.id }
             )
 
         ( Voted (Ok post), Voting v ) ->
@@ -401,7 +401,7 @@ update model msg =
                 , deleting = post
                 , hadData = True
                 }
-            , deletePost post.id
+            , deletePost (Session.apiUrl wd.session) post.id
             )
 
         ( RequestedDelete post, NoMoreData nmd ) ->
@@ -411,7 +411,7 @@ update model msg =
                 , deleting = post
                 , hadData = False
                 }
-            , deletePost post.id
+            , deletePost (Session.apiUrl nmd.session) post.id
             )
 
         ( DeletedPost (Ok True), Deleting d ) ->
@@ -515,9 +515,9 @@ updateSession model maybeUser =
 -- GRAPHQL
 
 
-fetchPosts : { limit : Int, cursor : Maybe String } -> Cmd Msg
-fetchPosts { limit, cursor } =
-    query
+fetchPosts : String -> { limit : Int, cursor : Maybe String } -> Cmd Msg
+fetchPosts apiUrl { limit, cursor } =
+    query apiUrl
         (Query.posts (\args -> { args | cursor = OptionalArgument.fromMaybe cursor })
             { limit = limit }
             postsWithSnippetSelection
@@ -525,11 +525,11 @@ fetchPosts { limit, cursor } =
         GotPosts
 
 
-vote : { isPositive : Bool, postId : Int } -> Cmd Msg
-vote args =
-    mutation (Mutation.vote args postSelection) Voted
+vote : String -> { isPositive : Bool, postId : Int } -> Cmd Msg
+vote apiUrl args =
+    mutation apiUrl (Mutation.vote args postSelection) Voted
 
 
-deletePost : PostId.PostId -> Cmd Msg
-deletePost postId =
-    mutation (Mutation.deletePost { id = PostId.getId postId }) DeletedPost
+deletePost : String -> PostId.PostId -> Cmd Msg
+deletePost apiUrl postId =
+    mutation apiUrl (Mutation.deletePost { id = PostId.getId postId }) DeletedPost

@@ -48,13 +48,13 @@ type Model
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    case session of
-        Session.LoggedIn key user ->
+    case Session.getUser session of
+        Just user ->
             ( Registered { session = session, user = user }
-            , Route.replaceUrl key Route.Home
+            , Route.replaceUrl (Session.navKey session) Route.Home
             )
 
-        Session.Guest key ->
+        Nothing ->
             ( Registering
                 { session = session
                 , username = ""
@@ -220,6 +220,7 @@ update model msg =
                 , password = password
                 }
             , registerUser
+                (Session.apiUrl session)
                 { options =
                     { username = username
                     , email = email
@@ -231,12 +232,7 @@ update model msg =
         ( SentRegistration res, Loading l ) ->
             case res of
                 Ok (WithUser user) ->
-                    ( Registered
-                        { session =
-                            Session.LoggedIn (Session.navKey l.session)
-                                user
-                        , user = user
-                        }
+                    ( Registered { session = Session.logIn l.session user, user = user }
                     , Route.previousPage (Session.navKey l.session)
                     )
 
@@ -334,7 +330,8 @@ updateSession model maybeUser =
 
 
 registerUser :
-    { options : { username : String, email : String, password : String } }
+    String
+    -> { options : { username : String, email : String, password : String } }
     -> Cmd Msg
-registerUser options =
-    mutation (Mutation.register options userResultSelection) SentRegistration
+registerUser apiUrl options =
+    mutation apiUrl (Mutation.register options userResultSelection) SentRegistration

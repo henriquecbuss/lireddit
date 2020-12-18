@@ -32,15 +32,6 @@ import User exposing (User)
 
 
 
--- ENDPOINT
-
-
-endpoint : String
-endpoint =
-    "http://localhost:4000/graphql"
-
-
-
 -- TYPES
 
 
@@ -53,12 +44,13 @@ type alias GraphQLResult decodesTo =
 
 
 mutation :
-    SelectionSet decodesTo RootMutation
+    String
+    -> SelectionSet decodesTo RootMutation
     -> (Result (Graphql.Http.Error decodesTo) decodesTo -> msg)
     -> Cmd msg
-mutation selectionSet toMsg =
+mutation apiUrl selectionSet toMsg =
     selectionSet
-        |> Graphql.Http.mutationRequest endpoint
+        |> Graphql.Http.mutationRequest apiUrl
         |> Graphql.Http.withCredentials
         |> Graphql.Http.send toMsg
 
@@ -68,24 +60,25 @@ mutation selectionSet toMsg =
 
 
 query :
-    SelectionSet decodesTo RootQuery
+    String
+    -> SelectionSet decodesTo RootQuery
     -> (Result (Graphql.Http.Error decodesTo) decodesTo -> msg)
     -> Cmd msg
-query selectionSet toMsg =
+query apiUrl selectionSet toMsg =
     selectionSet
-        |> Graphql.Http.queryRequest endpoint
+        |> Graphql.Http.queryRequest apiUrl
         |> Graphql.Http.withCredentials
         |> Graphql.Http.send toMsg
 
 
-getSession : Nav.Key -> (GraphQLResult (Maybe User) -> msg) -> Cmd msg
-getSession key toMsg =
-    query (Query.me userSelection) toMsg
+getSession : String -> (GraphQLResult (Maybe User) -> msg) -> Cmd msg
+getSession apiUrl toMsg =
+    query apiUrl (Query.me userSelection) toMsg
 
 
-getPost : PostId -> (GraphQLResult (Maybe PostWithUser) -> msg) -> Cmd msg
-getPost postId msg =
-    query (Query.post { id = PostId.getId postId } postWithUserSelection) msg
+getPost : String -> PostId -> (GraphQLResult (Maybe PostWithUser) -> msg) -> Cmd msg
+getPost apiUrl postId msg =
+    query apiUrl (Query.post { id = PostId.getId postId } postWithUserSelection) msg
 
 
 

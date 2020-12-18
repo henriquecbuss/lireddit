@@ -38,13 +38,13 @@ type Model
 
 init : Session -> ( Model, Cmd Msg )
 init session =
-    case session of
-        Session.LoggedIn key user ->
+    case Session.getUser session of
+        Just user ->
             ( LoggedIn { session = session, user = user }
-            , Route.replaceUrl key Route.Home
+            , Route.replaceUrl (Session.navKey session) Route.Home
             )
 
-        Session.Guest key ->
+        Nothing ->
             ( Login
                 { session = session
                 , usernameOrEmail = ""
@@ -185,6 +185,7 @@ update model msg =
             ( Loading
                 { session = session, usernameOrEmail = usernameOrEmail, password = password }
             , loginUser
+                (Session.apiUrl session)
                 { usernameOrEmail = usernameOrEmail, password = password }
             )
 
@@ -192,10 +193,7 @@ update model msg =
             case res of
                 Ok (WithUser user) ->
                     ( LoggedIn
-                        { session =
-                            Session.LoggedIn (Session.navKey l.session) user
-                        , user = user
-                        }
+                        { session = Session.logIn l.session user, user = user }
                     , Route.previousPage (Session.navKey l.session)
                     )
 
@@ -299,6 +297,6 @@ updateSession model maybeUser =
 -- GRAPHQL
 
 
-loginUser : { usernameOrEmail : String, password : String } -> Cmd Msg
-loginUser options =
-    mutation (Mutation.login options userResultSelection) SentLogin
+loginUser : String -> { usernameOrEmail : String, password : String } -> Cmd Msg
+loginUser apiUrl options =
+    mutation apiUrl (Mutation.login options userResultSelection) SentLogin

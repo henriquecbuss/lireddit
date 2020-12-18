@@ -40,9 +40,13 @@ type Model
     | Redirect Session
 
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init _ url key =
-    changeRouteTo (Route.fromUrl url) (Redirect (Guest key))
+type alias Flags =
+    String
+
+
+init : Flags -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init apiUrl url key =
+    changeRouteTo (Route.fromUrl url) (Redirect (Session.guest key apiUrl))
 
 
 
@@ -69,7 +73,7 @@ type Msg
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
     Browser.application
         { init = init
@@ -217,7 +221,11 @@ update msg model =
                     ( model, Cmd.none )
 
         ( RequestedLogOut, _ ) ->
-            ( model, GraphQL.mutation Mutation.logout LoggedOut )
+            ( model
+            , GraphQL.mutation (Session.apiUrl <| toSession model)
+                Mutation.logout
+                LoggedOut
+            )
 
         ( LoggedOut result, _ ) ->
             case result of
@@ -271,14 +279,13 @@ updateWithSession :
     -> ( Model, Cmd Msg )
 updateWithSession toModel toMsg model ( subModel, subCmd ) =
     let
-        key =
-            toSession model
-                |> Session.navKey
+        apiUrl =
+            toSession model |> Session.apiUrl
     in
     ( toModel subModel
     , Cmd.batch
         [ Cmd.map toMsg subCmd
-        , GraphQL.getSession key GotSession
+        , GraphQL.getSession apiUrl GotSession
         ]
     )
 

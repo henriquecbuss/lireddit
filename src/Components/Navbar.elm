@@ -32,8 +32,8 @@ navbar session loggedOut isLoggingOut =
         ]
     <|
         [ row [ width <| maximum 1000 fill, centerX, spacing 80 ]
-            (case session of
-                LoggedIn _ user ->
+            (case Session.getUser session of
+                Just user ->
                     [ linkToRoute (Font.size 32 :: centerY :: linkStyles)
                         { route = Route.Home, label = text "LiReddit" }
                     , linkButton
@@ -56,7 +56,7 @@ navbar session loggedOut isLoggingOut =
                         }
                     ]
 
-                Guest _ ->
+                Nothing ->
                     [ linkToRoute (Font.size 32 :: linkStyles)
                         { route = Route.Home, label = text "LiReddit" }
                     , linkToRoute (alignRight :: linkStyles)
