@@ -115,6 +115,23 @@ view model =
 
                 _ ->
                     False
+
+        showButton =
+            case model of
+                WithData wd ->
+                    True
+
+                Loading l ->
+                    True
+
+                NoMoreData nmd ->
+                    False
+
+                Voting { hadData } ->
+                    hadData
+
+                Deleting { hadData } ->
+                    hadData
     in
     { title = "LiReddit"
     , body =
@@ -143,33 +160,32 @@ view model =
                                         }
                                     ]
                                  <|
-                                    case model of
-                                        NoMoreData _ ->
-                                            el [ Font.color <| rgb 0.7 0.7 0.7 ] <|
-                                                text "You've reached the end"
+                                    if not showButton then
+                                        el [ Font.color <| rgb 0.7 0.7 0.7 ] <|
+                                            text "You've reached the end"
 
-                                        _ ->
-                                            Button.button
-                                                []
-                                                { onClick = Just RequestedPosts
-                                                , variant = Variant.Teal
-                                                , state =
-                                                    case model of
-                                                        Loading _ ->
-                                                            Button.Loading
+                                    else
+                                        Button.button
+                                            []
+                                            { onClick = Just RequestedPosts
+                                            , variant = Variant.Teal
+                                            , state =
+                                                case model of
+                                                    Loading _ ->
+                                                        Button.Loading
 
-                                                        Voting _ ->
-                                                            Button.Loading
+                                                    Voting { hadData } ->
+                                                        Button.Enabled "More posts"
 
-                                                        WithData _ ->
-                                                            Button.Enabled "More posts"
+                                                    WithData _ ->
+                                                        Button.Enabled "More posts"
 
-                                                        NoMoreData _ ->
-                                                            Button.Enabled "No more data"
+                                                    NoMoreData _ ->
+                                                        Button.Enabled "No more data"
 
-                                                        Deleting _ ->
-                                                            Button.Loading
-                                                }
+                                                    Deleting _ ->
+                                                        Button.Enabled "More posts"
+                                            }
                                ]
                 ]
             )
