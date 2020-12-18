@@ -18,7 +18,7 @@ import Page.NotFound as NotFound
 import Page.Post as Post
 import Page.Register as Register
 import Route exposing (Route)
-import Session exposing (Session(..))
+import Session exposing (Session)
 import Url
 import User exposing (User)
 
