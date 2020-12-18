@@ -1,5 +1,6 @@
 module Components.Button exposing (State(..), button)
 
+import Components.Loader as Loader
 import Components.Variant as Variant exposing (..)
 import Element exposing (..)
 import Element.Background as Background
@@ -41,11 +42,27 @@ buttonBg variant state =
             bg variant
 
 
-buttonLabel : State -> Element msg
-buttonLabel state =
+colorString : Color -> String
+colorString color =
+    let
+        { red, green, blue, alpha } =
+            toRgb color
+
+        componentToString component =
+            component * 255 |> round |> String.fromInt
+
+        components =
+            List.map componentToString [ red, green, blue ]
+                |> String.join ", "
+    in
+    "rgba(" ++ components ++ ", " ++ String.fromFloat alpha ++ ")"
+
+
+buttonLabel : Variant -> State -> Element msg
+buttonLabel variant state =
     case state of
         Loading ->
-            text "Loading"
+            Loader.dots [] { radius = 5, color = colorString <| buttonFg variant state }
 
         Enabled label ->
             text label
@@ -80,5 +97,5 @@ button attributes { onClick, variant, state } =
 
                 Enabled _ ->
                     onClick
-        , label = el [ centerX, centerY ] (buttonLabel state)
+        , label = el [ centerX, centerY ] (buttonLabel variant state)
         }

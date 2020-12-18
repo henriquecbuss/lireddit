@@ -102,7 +102,7 @@ viewPage docView msg maybeSession =
 basicView : Maybe Session -> List (Element Msg) -> Html Msg
 basicView maybeSession children =
     layout [] <|
-        column [ width fill, spacing 50 ] <|
+        column [ width fill, height fill, spacing 50 ] <|
             (case maybeSession of
                 Nothing ->
                     none

@@ -15,6 +15,7 @@ import Api.Query as Query
 import Browser
 import Components.Button as Button
 import Components.LinkButton exposing (linkButton)
+import Components.Loader as Loader
 import Components.Variant as Variant
 import Element exposing (..)
 import Element.Border as Border
@@ -136,10 +137,14 @@ view model =
     { title = "LiReddit"
     , body =
         [ layoutWith { options = [ noStaticStyleSheet ] }
-            []
-            (column [ spacing 40, width fill ]
+            [ width fill, height fill ]
+            (column [ spacing 40, width fill, height fill ]
                 [ if isInitialLoad then
-                    text "Loading"
+                    Loader.dots
+                        [ centerX
+                        , centerY
+                        ]
+                        { radius = 30, color = "rgb(31, 107, 142)" }
 
                   else
                     column
