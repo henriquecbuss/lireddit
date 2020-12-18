@@ -22,4 +22,4 @@ dist
 package-lock.json
 
 # Vercel
-.env.local
+.env
