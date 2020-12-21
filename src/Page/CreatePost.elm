@@ -175,7 +175,13 @@ view model =
                                         []
                                         { onClick = Just Submitted
                                         , variant = Variant.Green
-                                        , state = Button.Enabled "Create Post"
+                                        , state =
+                                            case model of
+                                                Posting _ ->
+                                                    Button.Loading
+
+                                                _ ->
+                                                    Button.Enabled "Create Post"
                                         }
                                     ]
                                 ]
