@@ -144,6 +144,15 @@ view model =
                                 ]
 
                         Just _ ->
+                            let
+                                isLoading =
+                                    case model of
+                                        Loading _ ->
+                                            True
+
+                                        _ ->
+                                            False
+                            in
                             userForm Nothing
                                 [ Input.text []
                                     { onChange = ChangedTitle
@@ -173,15 +182,19 @@ view model =
                                         }
                                     , Button.button
                                         []
-                                        { onClick = Just Submitted
+                                        { onClick =
+                                            if isLoading then
+                                                Nothing
+
+                                            else
+                                                Just Submitted
                                         , variant = Variant.Green
                                         , state =
-                                            case model of
-                                                Posting _ ->
-                                                    Button.Loading
+                                            if isLoading then
+                                                Button.Loading
 
-                                                _ ->
-                                                    Button.Enabled "Create Post"
+                                            else
+                                                Button.Enabled "Create Post"
                                         }
                                     ]
                                 ]
